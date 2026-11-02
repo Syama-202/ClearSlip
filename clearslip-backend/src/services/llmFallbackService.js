@@ -14,8 +14,10 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
  */
 export async function decodeWithFallback(rawText) {
   if (!config.groqApiKey) {
+    // Shown to end users, so no setup details here — server.js logs at
+    // startup that GROQ_API_KEY is missing
     const err = new Error(
-      'Could not confidently read this payslip automatically, and no fallback AI is configured (set GROQ_API_KEY in .env to enable one, free at console.groq.com).'
+      'We couldn\'t find enough payslip lines in this to decode it. Paste the earnings and deductions lines from your payslip (for example "Basic 25,000, HRA 10,000, PF 3,000"), or upload a clear photo of it.'
     )
     err.status = 422
     err.code = 'LOW_CONFIDENCE_NO_FALLBACK'

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import ImageUpload from './ImageUpload.jsx'
 import { C } from '../utils/colors'
 
+// Free-form questions need the server's AI fallback; payslip lines don't
 const EXAMPLES = [
-  'My CTC is 8L but take-home is only ₹52k. What\'s happening?',
-  'Basic 25000, HRA 12500, PF 3000, TDS 4200 deducted. Am I paying too much?',
-  'Fresher at IT company, first salary ₹28,000. How do I save tax?',
+  { text: 'My CTC is 8L but take-home is only ₹52k. What\'s happening?', needsAi: true },
+  { text: 'Basic 25000, HRA 12500, PF 3000, TDS 4200 deducted. Am I paying too much?' },
+  { text: 'Basic 30,000, HRA 15,000, Special Allowance 20,000, PF 3,600, Professional Tax 200, TDS 2,500' },
+  { text: 'Fresher at IT company, first salary ₹28,000. How do I save tax?', needsAi: true },
 ]
 
 const MODES = [
@@ -14,15 +16,17 @@ const MODES = [
   { key: 'describe', label: 'Describe it' },
 ]
 
-export default function InputPanel({ onSubmit, loading }) {
+export default function InputPanel({ onSubmit, loading, aiAvailable }) {
   const [mode, setMode] = useState('text')
   const [textInput, setTextInput] = useState('')
   const [descInput, setDescInput] = useState('')
   const [imageData, setImageData] = useState(null)
 
+  const examples = EXAMPLES.filter(ex => aiAvailable || !ex.needsAi)
+
   function handleSubmit() {
     if (mode === 'text' && !textInput.trim()) return
-    if (mode === 'describe' && !descInput.trim()) return
+    if (mode === 'describe' && (!descInput.trim() || !aiAvailable)) return
     if (mode === 'image' && !imageData) return
     onSubmit(mode, mode === 'text' ? textInput : descInput, imageData)
   }
@@ -34,7 +38,7 @@ export default function InputPanel({ onSubmit, loading }) {
 
   const canSubmit = !loading && (
     (mode === 'text' && textInput.trim()) ||
-    (mode === 'describe' && descInput.trim()) ||
+    (mode === 'describe' && descInput.trim() && aiAvailable) ||
     (mode === 'image' && imageData)
   )
 
@@ -79,8 +83,18 @@ export default function InputPanel({ onSubmit, loading }) {
         <ImageUpload onImageReady={setImageData} />
       )}
 
-      {/* Describe mode */}
-      {mode === 'describe' && (
+      {/* Describe mode — free-form text is read by the AI fallback, so it
+          only works when the server has one */}
+      {mode === 'describe' && !aiAvailable && (
+        <div style={{
+          background: C.yellowCard, border: `1px solid ${C.amberBorder}`, borderRadius: 8,
+          padding: 12, fontSize: 12, color: '#92400e', lineHeight: 1.6,
+        }}>
+          Describing your salary in your own words needs the AI helper, which isn't switched on for this site.
+          Use <strong>Paste text</strong> with your payslip lines (like "Basic 25,000, PF 3,000") or <strong>Upload photo</strong> instead.
+        </div>
+      )}
+      {mode === 'describe' && aiAvailable && (
         <textarea
           value={descInput}
           onChange={e => setDescInput(e.target.value)}
@@ -115,7 +129,7 @@ export default function InputPanel({ onSubmit, loading }) {
       <div style={{ borderTop: `1px solid ${C.amberBorder}`, paddingTop: 14 }}>
         <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, fontWeight: 500 }}>Try an example</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {EXAMPLES.map((ex, i) => (
+          {examples.map(({ text: ex }, i) => (
             <button key={i} onClick={() => useExample(ex)} style={{
               background: C.peach, border: `1px solid ${C.amberBorder}`, borderRadius: 6,
               padding: '7px 10px', fontSize: 12, color: C.terra, cursor: 'pointer',

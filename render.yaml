@@ -1,0 +1,33 @@
+# Render Blueprint — deploys the backend and frontend together (free tier).
+# Render dashboard → New → Blueprint → pick this repo. Then fill in the
+# variables marked sync: false (see README.md → Deploy).
+services:
+  - type: web
+    name: clearslip-backend
+    runtime: node
+    rootDir: clearslip-backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL       # the clearslip-frontend URL, e.g. https://clearslip-frontend.onrender.com
+        sync: false
+      - key: GROQ_API_KEY       # optional — enables "Describe it" mode
+        sync: false
+      - key: N8N_WEBHOOK_URL    # optional — enables "Email checklist"
+        sync: false
+      - key: N8N_SECRET
+        sync: false
+
+  - type: web
+    name: clearslip-frontend
+    runtime: static
+    rootDir: clearslip-frontend-final/clearslip
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL       # the clearslip-backend URL, e.g. https://clearslip-backend.onrender.com
+        sync: false

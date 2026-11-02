@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { C } from '../utils/colors'
 
-export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome }) {
+export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, showGovtDocs }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -21,23 +21,20 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome }) {
       </button>
 
       {/* Desktop tabs */}
-      <div style={{ display: 'flex', gap: 2, marginLeft: 28 }} className="hidden md:flex">
+      {/* display comes from the classes only — an inline display would override "hidden" */}
+      <div style={{ gap: 2, marginLeft: 28 }} className="hidden md:flex">
         <TabBtn active={activeTab === 'payslip'} onClick={() => setActiveTab('payslip')}>Payslip Decoder</TabBtn>
-        <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
-          Govt Docs <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', marginLeft: 4 }}>Beta</span>
-        </TabBtn>
+        {showGovtDocs && (
+          <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
+            Govt Docs <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', marginLeft: 4 }}>Beta</span>
+          </TabBtn>
+        )}
       </div>
 
-      {/* Desktop right buttons */}
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }} className="hidden md:flex">
-        <button style={{ color: 'rgba(255,255,255,0.8)', background: 'none', border: 'none', fontSize: 13, cursor: 'pointer', padding: '4px 8px' }}>
-          Sign in
-        </button>
-        <button style={{
-          background: C.maroon, color: '#fff', border: 'none', borderRadius: 6,
-          fontSize: 13, fontWeight: 500, padding: '6px 14px', cursor: 'pointer',
-        }}>
-          Get started
+      {/* Desktop right link */}
+      <div style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }} className="hidden md:flex">
+        <button onClick={onPrivacy} style={{ color: 'rgba(255,255,255,0.8)', background: 'none', border: 'none', fontSize: 13, cursor: 'pointer', padding: '4px 8px' }}>
+          Privacy
         </button>
       </div>
 
@@ -59,7 +56,9 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome }) {
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         }} className="block md:hidden">
           <MobileTab active={activeTab === 'payslip'} onClick={() => { setActiveTab('payslip'); setMenuOpen(false) }}>Payslip Decoder</MobileTab>
-          <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
+          {showGovtDocs && (
+            <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
+          )}
           <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.15)', margin: '6px 0' }} />
           <MobileTab active={false} onClick={() => { onPrivacy(); setMenuOpen(false) }}>Privacy Policy</MobileTab>
         </div>

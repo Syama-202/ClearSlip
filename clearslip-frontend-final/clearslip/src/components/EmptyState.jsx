@@ -1,12 +1,14 @@
 import { C } from '../utils/colors'
 
 const TIPS = [
-  '📋 Copy-paste your payslip text directly — even messy formats work',
-  '📸 Take a photo of your physical payslip for instant decode',
-  '🗣️ Describe it in plain words — Hinglish works perfectly',
+  { text: '📋 Copy-paste your payslip text directly — even messy formats work' },
+  { text: '📸 Take a photo of your physical payslip for instant decode' },
+  { text: '🗣️ Describe it in plain words — Hinglish works perfectly', needsAi: true },
 ]
 
-export default function EmptyState({ onExample }) {
+export default function EmptyState({ aiAvailable }) {
+  const tips = TIPS.filter(tip => aiAvailable || !tip.needsAi)
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -28,13 +30,13 @@ export default function EmptyState({ onExample }) {
 
       {/* Tips */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 360, marginBottom: 28 }}>
-        {TIPS.map((tip, i) => (
+        {tips.map((tip, i) => (
           <div key={i} style={{
             background: C.peach, border: `1px solid ${C.amberBorder}`,
             borderRadius: 8, padding: '9px 14px', fontSize: 13, color: C.terra,
             textAlign: 'left', lineHeight: 1.5,
           }}>
-            {tip}
+            {tip.text}
           </div>
         ))}
       </div>

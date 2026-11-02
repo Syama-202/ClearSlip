@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { config } from '../config/index.js'
 
 const router = Router()
 const startedAt = new Date().toISOString()
@@ -12,6 +13,11 @@ router.get('/', (req, res) => {
     startedAt,
     uptime: `${Math.floor(process.uptime())}s`,
     environment: process.env.NODE_ENV || 'development',
+    // Lets the frontend hide or explain features this server can't provide
+    features: {
+      llmFallback: Boolean(config.groqApiKey),
+      checklistEmail: Boolean(config.n8nWebhookUrl),
+    },
   })
 })
 

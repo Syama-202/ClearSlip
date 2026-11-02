@@ -7,6 +7,7 @@ import EmailModal from '../components/EmailModal.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadingState from '../components/LoadingState.jsx'
 import useClaudeApi from '../hooks/useClaudeApi.js'
+import useServerFeatures from '../hooks/useServerFeatures.js'
 import { buildClaudeMessage } from '../utils/buildClaudeMessage.js'
 import { sendChecklist } from '../utils/sendChecklist.js'
 import { useToast } from '../components/Toast.jsx'
@@ -21,6 +22,7 @@ export default function Home() {
   const [emailSending, setEmailSending] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const { analyze, loading } = useClaudeApi()
+  const features = useServerFeatures()
   const addToast = useToast()
 
   const handleSubmit = useCallback(async (mode, textInput, imageData) => {
@@ -65,22 +67,24 @@ export default function Home() {
   }
 
   return (
-    <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 56px - 41px)', overflow: 'hidden', flexDirection: 'row' }}
-      className="flex-col md:flex-row">
+    // Layout lives in the classes: panels stack on phones and sit side by
+    // side (each scrolling, page height fixed) from md up. Inline width,
+    // height or flexDirection would override the responsive classes.
+    <div className="flex flex-1 flex-col md:flex-row md:h-[calc(100vh-97px)] md:overflow-hidden">
 
       {/* ── LEFT PANEL ── */}
       <aside style={{
-        width: 300, flexShrink: 0, background: C.peach,
+        background: C.peach,
         borderRight: `1px solid ${C.amberBorder}`,
-        overflowY: 'auto', padding: 20,
+        padding: 20,
       }}
-        className="w-full md:w-72 lg:w-80">
-        <InputPanel onSubmit={handleSubmit} loading={loading} />
+        className="w-full shrink-0 md:w-72 lg:w-80 md:overflow-y-auto">
+        <InputPanel onSubmit={handleSubmit} loading={loading} aiAvailable={features.llmFallback !== false} />
       </aside>
 
       {/* ── RIGHT PANEL ── */}
-      <section style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: C.cream }}>
-        {appState === 'empty' && <EmptyState />}
+      <section style={{ padding: '20px 24px', background: C.cream }} className="flex-1 md:overflow-y-auto">
+        {appState === 'empty' && <EmptyState aiAvailable={features.llmFallback !== false} />}
         {appState === 'loading' && <LoadingState />}
 
         {appState === 'result' && analysisData && (
@@ -105,7 +109,7 @@ export default function Home() {
             <BreakdownTable breakdown={analysisData.breakdown} loading={false} />
             <ActionCard
               actionItems={analysisData.actionItems}
-              onSendEmail={openEmailModal}
+              onSendEmail={features.checklistEmail !== false ? openEmailModal : null}
               loading={false}
               emailSending={emailSending}
             />

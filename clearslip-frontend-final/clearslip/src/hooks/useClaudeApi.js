@@ -13,7 +13,9 @@ export default function useClaudeApi() {
     setData(null)
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 45000)
+    // Generous: a free-tier server waking from sleep plus a first-time
+    // OCR language download can together take close to a minute
+    const timeout = setTimeout(() => controller.abort(), 90000)
 
     try {
       const response = await fetch(`${API_BASE}/api/decode`, {

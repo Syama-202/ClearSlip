@@ -65,7 +65,7 @@ Should return `{"status":"ok",...}`
 ```bash
 npm test
 ```
-98 tests: parser, tax calculator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+99 tests: parser, tax calculator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
 
 ---
 

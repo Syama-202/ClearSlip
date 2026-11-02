@@ -14,7 +14,8 @@ export default function ActionCard({ actionItems, onSendEmail, loading, emailSen
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: C.terra }}>What to do next</div>
-        <button
+        {/* No handler when the server can't send email */}
+        {onSendEmail && <button
           onClick={onSendEmail}
           disabled={emailSending}
           style={{
@@ -28,7 +29,7 @@ export default function ActionCard({ actionItems, onSendEmail, loading, emailSen
         >
           <span>✉</span>
           {emailSending ? 'Sending…' : 'Email checklist'}
-        </button>
+        </button>}
       </div>
 
       {/* Action items */}

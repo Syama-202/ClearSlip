@@ -66,8 +66,12 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | Decode pipeline wired end to end (OCR → rules → fallback) | `src/controllers/decodeController.js` | ✅ Done — response includes `engine: "rules" \| "llm-fallback"` |
 | Tax slabs updated to Budget 2025 (FY 2025-26) + 4% cess + 87A marginal relief | `src/services/rulesEngine.js`, `src/prompts/fallbackPrompt.js` | ✅ Done |
 | Parser handles real layouts: two-column lines, YTD columns, `k`/`L`/`Cr` units, PF No/UAN/employer lines ignored | `src/services/rulesEngine.js` | ✅ Done — see §4.1–4.2 |
-| Jest + Supertest test suite (98 tests) | `tests/` | ✅ Done — see §9 |
+| Jest + Supertest test suite (99 tests) | `tests/` | ✅ Done — see §9 |
 | Tested against 6 real-world payslip formats from Indian HR websites (text + OCR) | `tests/webSamples.test.js` | ✅ Done — 6/6, see §9.1 |
+| Demo-readiness: dead "Sign in"/"Get started" buttons removed; unfinished Govt Docs tab hidden (`SHOW_GOVT_DOCS` in `App.jsx`) | `Navbar.jsx`, `App.jsx` | ✅ Done |
+| UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
+| Phone layout fixed: inline styles were overriding Tailwind's responsive classes, so panels never stacked and desktop nav links showed on phones | `Home.jsx`, `Navbar.jsx` | ✅ Done — checked at 375 px and 1280 px |
+| Git repository + deployment config (`render.yaml`, root `README.md`) | repo root | ✅ Done — deploy itself still to do (§10) |
 | OCR ₹-misread correction using the payslip's own totals | `src/services/rulesEngine.js` | ✅ Done — see §9.1 |
 | Labelled 12-digit UANs no longer rejected as Aadhaar numbers | `src/controllers/decodeController.js` | ✅ Done |
 | Frontend build setup (Vite + Tailwind) | `package.json`, `index.html`, `vite.config.js`, `postcss.config.js` | ✅ Done |
@@ -182,7 +186,7 @@ Route to LLM fallback (or return a clear error if no fallback is configured) whe
 | 1 | JWT auth + user model + decode-history persistence (DB) | Turns the project from a stateless API demo into a real application |
 | 2 | Old vs New tax regime comparator (add old-regime slab function alongside §4.7) | Most-requested real-world feature; reuses existing engine |
 | 2 | History/trend dashboard (Recharts: take-home & tax over time) | Demonstrates data visualization + persistence together |
-| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (98 tests) — add old-regime tests with the comparator | Shows testing discipline — high grading value for low effort |
+| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (99 tests) — add old-regime tests with the comparator | Shows testing discipline — high grading value for low effort |
 | 3 | ~~Bug fixing against edge cases (unusual formats)~~ ✅ two-column/YTD/units done — test with more real payslip photos | Real debugging, not just feature-adding |
 | 4 | Deployment (Railway/Render, backend + frontend) | Required for a working demo/viva |
 | 4 | UI polish pass | Presentation quality |
@@ -319,14 +323,14 @@ The original `payslipDecoder.js` prompt (used with Claude's vision API) has been
 
 ---
 
-## 9. Testing (done — 98 automated tests, all passing)
+## 9. Testing (done — 99 automated tests, all passing)
 
 Run with `npm test` in `clearslip-backend` (Jest + Supertest).
 
 - **`tests/rulesEngine.test.js` (34 tests)** — number parsing (plain, comma-grouped, Indian lakh format, `k`/`L`/`LPA`/`Cr` units, "Cr" as credit, percentages, OCR-misread ₹ signs); component recognition (two-column OCR lines, YTD columns ignored, real annual columns accepted, "per annum", short labels DA/P.Tax/ESIC); false positives (`Gross Deductions`, `Total Deductions`, `PF No`/`UAN`, `Employer PF`, numbers before any label); OCR ₹-misread correction; confidence/fallback routing; action items.
 - **`tests/taxCalculator.test.js` (12 tests)** — 87A rebate up to ₹12L taxable, marginal relief just above it, every slab boundary (₹16L, ₹20L, ₹24L) and a property check that tax never exceeds income above the rebate limit.
 - **`tests/webSamples.test.js` (38 tests)** — six sample payslips published on Indian payroll/HR websites (taggd, Kredily, Hirist ×2, sum.money, indianpaycalculator — corporate and central-government formats), each checked **twice**: as pasted text, and as the text Tesseract actually read from an image of it. Fixtures: `tests/fixtures/webSamples.js` (with source URLs) and `tests/fixtures/ocr/`.
-- **`tests/api.test.js` (14 tests)** — `POST /api/decode` with text, a text-layer PDF, a scanned PDF, a corrupt PDF, unreadable text with and without the LLM fallback (Groq mocked), Aadhaar rejection, UAN allowed, malformed requests; `POST /api/checklist` without n8n and with a bad email; `GET /api/health`.
+- **`tests/api.test.js` (15 tests)** — `GET /api/health` feature flags; `POST /api/decode` with text, a text-layer PDF, a scanned PDF, a corrupt PDF, unreadable text with and without the LLM fallback (Groq mocked), Aadhaar rejection, UAN allowed, malformed requests; `POST /api/checklist` without n8n and with a bad email; `GET /api/health`.
 - **Not automated:** running Tesseract itself (it downloads ~10 MB of language data on first run). Instead, the real OCR output of each web sample is saved as a fixture, and the full image → API path was verified manually.
 
 ### 9.1 Testing against real-world payslip formats
@@ -357,11 +361,12 @@ choosing the one that leaves the smallest unexplained amount, then the fewest ch
 
 ---
 
-## 10. Deployment Plan (Day 4)
+## 10. Deployment (ready — needs your Render account)
 
-- Backend → Railway or Render (free tier), env vars (all optional): `GROQ_API_KEY`, `GROQ_MODEL`, `N8N_WEBHOOK_URL`, `N8N_SECRET`, `FRONTEND_URL`.
-- Frontend → Vercel or Netlify, env var: `VITE_API_URL` pointing to the deployed backend.
-- Verify Tesseract.js can write to a temp/cache directory on the chosen host (needed for OCR language data download on first run).
+- **One-click setup:** `render.yaml` (Render Blueprint) creates the backend (Node web service, health check `/api/health`) and the frontend (static site) together on the free tier. Step-by-step instructions are in the root `README.md`.
+- **Variables:** backend `FRONTEND_URL` (required, for CORS), `GROQ_API_KEY` / `N8N_WEBHOOK_URL` / `N8N_SECRET` (optional); frontend `VITE_API_URL` (baked in at build time, so redeploy after setting it).
+- **Production fixes already made:** Express trusts the host's proxy in production, so rate limits apply per user rather than to everyone behind Render's proxy; the frontend waits up to 90 s for a reply, covering a free-tier cold start (~1 min) plus the first-run OCR language download (~10 MB, written to the app folder, which is writable on Render).
+- **Not yet done:** the actual deploy (needs a GitHub repo and a Render account) and a check of the live URLs.
 
 ---
 

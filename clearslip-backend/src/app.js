@@ -8,6 +8,10 @@ import healthRouter from './routes/health.js'
 
 const app = express()
 
+// Hosts like Render/Railway sit behind one proxy; trust it so req.ip is
+// the real client and rate limits apply per user, not to everyone at once
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
+
 // ── Security & parsing ──────────────────────────────────────────
 app.use(helmet())
 app.use(corsMiddleware)

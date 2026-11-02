@@ -12,6 +12,9 @@ app.listen(config.port, () => {
     GET  /api/health
     POST /api/decode
     POST /api/checklist
+  Optional features:
+    LLM fallback     ${config.groqApiKey ? 'on' : 'off — set GROQ_API_KEY (free at console.groq.com)'}
+    Checklist email  ${config.n8nWebhookUrl ? 'on' : 'off — set N8N_WEBHOOK_URL'}
   `)
 })
 

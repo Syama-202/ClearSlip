@@ -45,6 +45,11 @@ describe('GET /api/health', () => {
     expect(res.status).toBe(200)
     expect(res.body.status).toBe('ok')
   })
+
+  test('reports which optional features are configured', async () => {
+    const res = await request(app).get('/api/health')
+    expect(res.body.features).toEqual({ llmFallback: false, checklistEmail: false })
+  })
 })
 
 describe('POST /api/decode', () => {
