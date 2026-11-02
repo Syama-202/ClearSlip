@@ -1,0 +1,44 @@
+Tech Innovators Pvt. Ltd.
+
+Salary Slip for the Month of June 2026
+
+Employee Details
+
+Name: Priya Singh
+Employee ID: 67890
+Department: Software Development
+Designation: Software Engineer
+UAN: UAN123456
+
+PF No: PF78910
+
+Bank Details: HDFC Bank, A/C No: 1234567890
+DOJ: 01.01.2023
+Earnings
+
+Basic Salary 50,000
+
+House Rent Allowance (HRA) %20,000
+
+Dearness Allowance (DA) %15,000
+Conveyance %3,000
+
+Medical Allowance 2,500
+
+Special Allowance %5,000
+
+Other Allowances 34,000
+
+Total Earnings 399,500
+Deductions
+
+Employee Provident Fund (EPF) %6,000
+Professional Tax ]250
+
+Tax Deducted at Source (TDS) %8,500
+
+Other Deductions 1,750
+
+Total Deductions 316,500
+
+Date: 30th June 2026

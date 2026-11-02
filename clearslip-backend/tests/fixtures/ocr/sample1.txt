@@ -1,0 +1,43 @@
+PAYSLIP FOR THE MONTH OF April, 2026
+Employee Name: Asha Rao
+
+Employee ID: KR-2231
+
+Date of Joining: 12/06/2024
+
+PAN: XXXXX1234X
+
+PF UAN: 100987654321
+
+Bank Account: Account ending in 4421
+
+Days Worked: 28 / 30
+
+Leave Without Pay (if any): 2 Days
+Earnings
+
+Basic Salary: 25,000
+
+House Rent Allowance (HRA): 10,000
+Conveyance Allowance: 1,600
+
+Special Allowance: 12,150
+
+Other Allowances: 1,250
+
+Gross Earnings: 50,000
+
+Deductions
+
+Provident Fund (PF): 3,000
+
+Employee State Insurance (ESI, if applicable): 375
+Professional Tax: 200
+
+Tax Deducted at Source (TDS): 2,500
+
+Other Deductions: 0
+
+Total Deductions: 6,075
+
+Net Pay: 43,925 (Rupees Forty-Three Thousand Nine Hundred Twenty-Five only)

@@ -1,0 +1,32 @@
+Employee details Information
+
+Employer name Example Pvt Ltd
+
+Employee name / ID Rakesh Mehta / EMP 1042
+
+Designation / Department Senior Analyst / Finance
+
+Pay period 1-30 April 2026
+
+Days paid / Loss of pay 30/0
+
+UAN XXXXXXXX1234
+
+PAN XXXXX1234X
+
+Bank account XXXXXXXX5678
+
+Earnings Amount (X) Deductions Amount (X)
+
+Basic salary 37,500 Employee PF 4,500
+
+House Rent Allowance (HRA) 15,000 Professional tax ~~ 200
+
+Conveyance allowance 1,600 TDS 3,000
+
+Special allowance 18,900
+
+Leave Travel Allowance (LTA) 2,000
+
+Gross salary 75,000 Total deductions 7,700
+Net salary 67,300
