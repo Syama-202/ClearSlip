@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ClipboardType, Camera, MessageSquareText, ArrowRight, Loader2, Sparkles } from 'lucide-react'
 import ImageUpload from './ImageUpload.jsx'
-import { C } from '../utils/colors'
 
 // Free-form questions need the server's AI fallback; payslip lines don't
 const EXAMPLES = [
@@ -11,18 +11,29 @@ const EXAMPLES = [
 ]
 
 const MODES = [
-  { key: 'text', label: 'Paste text' },
-  { key: 'image', label: 'Upload photo' },
-  { key: 'describe', label: 'Describe it' },
+  { key: 'text', label: 'Paste', icon: ClipboardType },
+  { key: 'image', label: 'Upload', icon: Camera },
+  { key: 'describe', label: 'Describe', icon: MessageSquareText },
 ]
 
-export default function InputPanel({ onSubmit, loading, aiAvailable }) {
+const textareaClass =
+  'h-44 w-full resize-none rounded-xl border border-line bg-white p-4 text-base leading-relaxed text-ink placeholder:text-subtle focus:border-saffron-500 focus:outline-none focus:ring-4 focus:ring-saffron-100'
+
+export default function InputPanel({ onSubmit, loading, aiAvailable, sample }) {
   const [mode, setMode] = useState('text')
   const [textInput, setTextInput] = useState('')
   const [descInput, setDescInput] = useState('')
   const [imageData, setImageData] = useState(null)
 
   const examples = EXAMPLES.filter(ex => aiAvailable || !ex.needsAi)
+
+  // "Try a sample payslip" fills the box so people can see what was decoded
+  useEffect(() => {
+    if (sample) {
+      setMode('text')
+      setTextInput(sample.text)
+    }
+  }, [sample])
 
   function handleSubmit() {
     if (mode === 'text' && !textInput.trim()) return
@@ -43,102 +54,79 @@ export default function InputPanel({ onSubmit, loading, aiAvailable }) {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.terra, marginBottom: 10 }}>
-          How do you want to share your payslip?
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {MODES.map(m => (
-            <button key={m.key} onClick={() => setMode(m.key)} style={{
-              padding: '5px 12px', borderRadius: 99, fontSize: 12, fontWeight: mode === m.key ? 500 : 400,
-              background: mode === m.key ? C.yellowCard : '#fff',
-              border: `1px solid ${mode === m.key ? C.amberBorder : '#e5e7eb'}`,
-              color: mode === m.key ? C.terra : C.textMuted, cursor: 'pointer', transition: 'all 0.15s',
-            }}>
-              {m.label}
-            </button>
-          ))}
-        </div>
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-sm md:p-6">
+      <h2 className="text-lg font-semibold text-terra">Share your payslip</h2>
+      <p className="mt-1 text-base text-muted">Paste the lines, upload a photo or PDF, or describe it.</p>
+
+      {/* Mode switch */}
+      <div className="mt-5 grid grid-cols-3 gap-1 rounded-xl bg-peach p-1" role="tablist">
+        {MODES.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            role="tab"
+            aria-selected={mode === key}
+            onClick={() => setMode(key)}
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-saffron-500 ${
+              mode === key ? 'bg-white text-saffron-600 shadow-sm' : 'text-muted hover:text-ink'
+            }`}
+          >
+            <Icon size={17} /> {label}
+          </button>
+        ))}
       </div>
 
-      {/* Text mode */}
-      {mode === 'text' && (
-        <textarea
-          value={textInput}
-          onChange={e => setTextInput(e.target.value)}
-          placeholder="Paste your payslip details here…&#10;e.g. Basic: 25000, HRA: 12500, Special Allowance: 15000, PF deducted: 3000, TDS: 4200"
-          style={{
-            width: '100%', height: 120, border: `1px solid ${C.amberBorder}`, borderRadius: 8,
-            padding: 12, fontSize: 13, color: C.textDark, resize: 'none', fontFamily: 'inherit',
-            background: '#fff', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box',
-          }}
-          onFocus={e => e.target.style.boxShadow = `0 0 0 3px ${C.amberBorder}`}
-          onBlur={e => e.target.style.boxShadow = 'none'}
-        />
-      )}
+      <div className="mt-4">
+        {mode === 'text' && (
+          <textarea
+            value={textInput}
+            onChange={e => setTextInput(e.target.value)}
+            aria-label="Payslip text"
+            placeholder={'Paste your payslip details here…\ne.g. Basic: 25000, HRA: 12500, Special Allowance: 15000, PF deducted: 3000, TDS: 4200'}
+            className={textareaClass}
+          />
+        )}
 
-      {/* Image mode */}
-      {mode === 'image' && (
-        <ImageUpload onImageReady={setImageData} />
-      )}
+        {mode === 'image' && <ImageUpload onImageReady={setImageData} />}
 
-      {/* Describe mode — free-form text is read by the AI fallback, so it
-          only works when the server has one */}
-      {mode === 'describe' && !aiAvailable && (
-        <div style={{
-          background: C.yellowCard, border: `1px solid ${C.amberBorder}`, borderRadius: 8,
-          padding: 12, fontSize: 12, color: '#92400e', lineHeight: 1.6,
-        }}>
-          Describing your salary in your own words needs the AI helper, which isn't switched on for this site.
-          Use <strong>Paste text</strong> with your payslip lines (like "Basic 25,000, PF 3,000") or <strong>Upload photo</strong> instead.
-        </div>
-      )}
-      {mode === 'describe' && aiAvailable && (
-        <textarea
-          value={descInput}
-          onChange={e => setDescInput(e.target.value)}
-          placeholder="Describe in your own words…&#10;e.g. Mera CTC 8L hai, take-home 52k aa raha hai, PF aur TDS cut ho raha hai. Kya main zyada tax de raha hoon?"
-          style={{
-            width: '100%', height: 120, border: `1px solid ${C.amberBorder}`, borderRadius: 8,
-            padding: 12, fontSize: 13, color: C.textDark, resize: 'none', fontFamily: 'inherit',
-            background: '#fff', outline: 'none', lineHeight: 1.6, boxSizing: 'border-box',
-          }}
-          onFocus={e => e.target.style.boxShadow = `0 0 0 3px ${C.amberBorder}`}
-          onBlur={e => e.target.style.boxShadow = 'none'}
-        />
-      )}
+        {/* Free-form text is read by the AI fallback, so it only works when the server has one */}
+        {mode === 'describe' && !aiAvailable && (
+          <div className="rounded-xl border border-line bg-sand p-4 text-base leading-relaxed text-saffron-700">
+            Describing your salary in your own words needs the AI helper, which isn't switched on for this site.
+            Use <strong>Paste</strong> with your payslip lines (like "Basic 25,000, PF 3,000") or <strong>Upload</strong> instead.
+          </div>
+        )}
+        {mode === 'describe' && aiAvailable && (
+          <textarea
+            value={descInput}
+            onChange={e => setDescInput(e.target.value)}
+            aria-label="Describe your salary"
+            placeholder={'Describe in your own words…\ne.g. Mera CTC 8L hai, take-home 52k aa raha hai, PF aur TDS cut ho raha hai. Kya main zyada tax de raha hoon?'}
+            className={textareaClass}
+          />
+        )}
+      </div>
 
-      {/* CTA */}
       <button
         onClick={handleSubmit}
         disabled={!canSubmit}
-        style={{
-          width: '100%', padding: '10px 0', borderRadius: 8, border: 'none',
-          background: canSubmit ? C.maroon : '#d1d5db',
-          color: '#fff', fontSize: 14, fontWeight: 500, cursor: canSubmit ? 'pointer' : 'not-allowed',
-          transition: 'background 0.15s',
-        }}
-        onMouseEnter={e => { if (canSubmit) e.target.style.background = C.maroonDark }}
-        onMouseLeave={e => { if (canSubmit) e.target.style.background = C.maroon }}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-maroon px-4 py-3.5 text-base font-semibold text-white transition hover:bg-maroon-dark focus:outline-none focus-visible:ring-4 focus-visible:ring-maroon/30 disabled:cursor-not-allowed disabled:bg-stone-300"
       >
-        {loading ? 'Decoding…' : 'Decode my payslip →'}
+        {loading ? <><Loader2 size={18} className="animate-spin" /> Decoding…</> : <>Decode my payslip <ArrowRight size={18} /></>}
       </button>
 
       {/* Examples */}
-      <div style={{ borderTop: `1px solid ${C.amberBorder}`, paddingTop: 14 }}>
-        <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, fontWeight: 500 }}>Try an example</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {examples.map(({ text: ex }, i) => (
-            <button key={i} onClick={() => useExample(ex)} style={{
-              background: C.peach, border: `1px solid ${C.amberBorder}`, borderRadius: 6,
-              padding: '7px 10px', fontSize: 12, color: C.terra, cursor: 'pointer',
-              textAlign: 'left', lineHeight: 1.5, transition: 'background 0.1s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = C.yellowCard}
-              onMouseLeave={e => e.currentTarget.style.background = C.peach}
+      <div className="mt-6 border-t border-line pt-5">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-muted">
+          <Sparkles size={15} /> Try an example
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+          {examples.map(({ text }, i) => (
+            <button
+              key={i}
+              onClick={() => useExample(text)}
+              className="rounded-lg border border-line bg-peach px-3.5 py-2.5 text-left text-sm leading-relaxed text-terra transition hover:border-saffron-500/40 hover:bg-sand"
             >
-              "{ex}"
+              “{text}”
             </button>
           ))}
         </div>

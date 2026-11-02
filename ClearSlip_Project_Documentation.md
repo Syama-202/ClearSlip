@@ -72,6 +72,7 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
 | Phone layout fixed: inline styles were overriding Tailwind's responsive classes, so panels never stacked and desktop nav links showed on phones | `Home.jsx`, `Navbar.jsx` | ✅ Done — checked at 375 px and 1280 px |
 | Git repository + deployment config (`render.yaml`, root `README.md`) | repo root | ✅ Done — deploy itself still to do (§10) |
+| UI redesign for laptop/desktop screens: rem-based type scale (body 16 px, figures 30 px — was 94% of text at 12–13 px), centred layout up to 1536 px with a sticky input card, side-by-side results on wide screens, welcome screen with "Try a sample payslip", explanations shown under each component, lucide icons, WCAG-AA text colours, inline styles replaced by Tailwind tokens | `tailwind.config.js`, all components | ✅ Done — checked at 375, 1440 and 1920 px |
 | OCR ₹-misread correction using the payslip's own totals | `src/services/rulesEngine.js` | ✅ Done — see §9.1 |
 | Labelled 12-digit UANs no longer rejected as Aadhaar numbers | `src/controllers/decodeController.js` | ✅ Done |
 | Frontend build setup (Vite + Tailwind) | `package.json`, `index.html`, `vite.config.js`, `postcss.config.js` | ✅ Done |

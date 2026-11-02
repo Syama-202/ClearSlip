@@ -13,7 +13,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('payslip') // 'payslip' | 'govtdocs'
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fffbeb' }}>
+    <div className="flex min-h-screen flex-col bg-cream">
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => { setActiveTab(tab); setPage('main') }}
@@ -21,17 +21,14 @@ export default function App() {
         onHome={() => { setPage('main'); setActiveTab('payslip') }}
         showGovtDocs={SHOW_GOVT_DOCS}
       />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main className="flex flex-1 flex-col">
         {page === 'privacy' && <PrivacyPolicy onBack={() => setPage('main')} />}
         {page === 'main' && activeTab === 'payslip' && <Home />}
         {page === 'main' && activeTab === 'govtdocs' && SHOW_GOVT_DOCS && <GovtDocs />}
-      </div>
-      <footer style={{
-        background: '#fff7ed', borderTop: '1px solid #fde68a',
-        padding: '10px 24px', textAlign: 'center', fontSize: 12, color: '#92400e',
-      }}>
+      </main>
+      <footer className="border-t border-line bg-peach px-4 py-4 text-center text-sm text-muted">
         ClearSlip does not store your payslip data. Analysis is session-only and not saved. This is not financial advice.{' '}
-        <button onClick={() => setPage('privacy')} style={{ color: '#ea580c', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
+        <button onClick={() => setPage('privacy')} className="font-medium text-saffron-600 underline underline-offset-2 hover:text-saffron-700">
           Privacy Policy
         </button>
       </footer>

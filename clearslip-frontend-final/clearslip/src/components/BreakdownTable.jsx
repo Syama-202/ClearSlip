@@ -1,117 +1,68 @@
-import { useState } from 'react'
 import { formatINR } from '../utils/formatCurrency'
-import { C } from '../utils/colors'
 
-export default function BreakdownTable({ breakdown, loading }) {
-  const [hoverIdx, setHoverIdx] = useState(null)
-
-  if (loading) return <SkeletonTable />
-
+// Each row shows what the component means right under its name, since
+// explaining the payslip is the point (a hover-only tooltip hid it)
+export default function BreakdownTable({ breakdown }) {
   const earnings = breakdown?.filter(r => r.type === 'earning') ?? []
   const deductions = breakdown?.filter(r => r.type === 'deduction') ?? []
   const totalMonthly = earnings.reduce((s, r) => s + (r.monthly || 0), 0) - deductions.reduce((s, r) => s + (r.monthly || 0), 0)
   const totalAnnual = totalMonthly * 12
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 500, color: C.terra, marginBottom: 10 }}>Payslip breakdown</div>
-      <div style={{ border: `1px solid ${C.amberBorder}`, borderRadius: 10, overflow: 'hidden' }}>
-        {/* Header */}
-        <div style={{ background: C.yellowCard, display: 'grid', gridTemplateColumns: '1fr 90px 90px', padding: '8px 14px', gap: 8 }}>
-          {['Component', 'Monthly', 'Annual'].map(h => (
-            <div key={h} style={{ fontSize: 12, fontWeight: 500, color: '#92400e' }}>{h}</div>
-          ))}
-        </div>
-
-        {/* Earnings */}
+    <div className="overflow-hidden rounded-2xl border border-line bg-white">
+      <h2 className="px-5 pb-3 pt-5 text-lg font-semibold text-terra">Payslip breakdown</h2>
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-y border-line bg-sand text-sm font-semibold text-saffron-700">
+            <th scope="col" className="px-5 py-2.5">Component</th>
+            <th scope="col" className="w-28 px-3 py-2.5 text-right sm:w-36">Monthly</th>
+            <th scope="col" className="hidden w-36 px-5 py-2.5 text-right sm:table-cell">Annual</th>
+          </tr>
+        </thead>
         {earnings.length > 0 && (
-          <div style={{ padding: '4px 0' }}>
+          <tbody>
             <SectionLabel label="Earnings" />
-            {earnings.map((row, i) => (
-              <Row key={i} row={row} idx={i} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} />
-            ))}
-          </div>
+            {earnings.map(row => <Row key={row.component} row={row} />)}
+          </tbody>
         )}
-
-        {/* Deductions */}
         {deductions.length > 0 && (
-          <div style={{ borderTop: `1px solid ${C.amberBorder}`, padding: '4px 0' }}>
+          <tbody className="border-t border-line">
             <SectionLabel label="Deductions" />
-            {deductions.map((row, i) => (
-              <Row key={i} row={row} idx={earnings.length + i} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} isDeduction />
-            ))}
-          </div>
+            {deductions.map(row => <Row key={row.component} row={row} isDeduction />)}
+          </tbody>
         )}
-
-        {/* Total */}
-        <div style={{ borderTop: `2px solid ${C.amberBorder}`, background: '#fef9ee', display: 'grid', gridTemplateColumns: '1fr 90px 90px', padding: '10px 14px', gap: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.terra }}>Take-home</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.terra }}>{formatINR(totalMonthly)}</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.terra }}>{formatINR(totalAnnual)}</div>
-        </div>
-      </div>
+        <tfoot>
+          <tr className="border-t-2 border-line bg-peach text-base font-semibold text-terra">
+            <th scope="row" className="px-5 py-4">Take-home</th>
+            <td className="px-3 py-4 text-right tabular-nums">{formatINR(totalMonthly)}</td>
+            <td className="hidden px-5 py-4 text-right tabular-nums sm:table-cell">{formatINR(totalAnnual)}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   )
 }
 
 function SectionLabel({ label }) {
   return (
-    <div style={{ padding: '4px 14px', fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
-      {label}
-    </div>
+    <tr>
+      <th colSpan={3} scope="colgroup" className="px-5 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-subtle">
+        {label}
+      </th>
+    </tr>
   )
 }
 
-function Row({ row, idx, hoverIdx, setHoverIdx, isDeduction }) {
-  const isHovered = hoverIdx === idx
+function Row({ row, isDeduction }) {
+  const amountClass = `text-right text-base font-medium tabular-nums ${isDeduction ? 'text-bad' : 'text-ink'}`
   return (
-    <div
-      onMouseEnter={() => setHoverIdx(idx)}
-      onMouseLeave={() => setHoverIdx(null)}
-      style={{
-        display: 'grid', gridTemplateColumns: '1fr 90px 90px',
-        padding: '7px 14px', gap: 8, position: 'relative', cursor: 'default',
-        background: isHovered ? (isDeduction ? '#fef2f2' : C.saffronLight) : 'transparent',
-        transition: 'background 0.1s',
-      }}
-    >
-      <div style={{ fontSize: 13, color: C.textMid, display: 'flex', alignItems: 'center', gap: 6 }}>
-        {row.component}
-        <span style={{ fontSize: 11, color: C.textFaint, cursor: 'help' }} title={row.explanation}>ⓘ</span>
-      </div>
-      <div style={{ fontSize: 13, color: isDeduction ? C.red : C.textDark, fontWeight: 500 }}>
-        {isDeduction ? '−' : ''}{formatINR(row.monthly)}
-      </div>
-      <div style={{ fontSize: 13, color: isDeduction ? C.red : C.textDark, fontWeight: 500 }}>
-        {isDeduction ? '−' : ''}{formatINR(row.annual)}
-      </div>
-
-      {/* Tooltip */}
-      {isHovered && row.explanation && (
-        <div style={{
-          position: 'absolute', left: 14, bottom: '100%', zIndex: 20,
-          background: C.maroonDark, color: '#fff', fontSize: 12, padding: '6px 10px',
-          borderRadius: 6, maxWidth: 280, lineHeight: 1.5,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.2)', pointerEvents: 'none',
-        }}>
-          {row.explanation}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function SkeletonTable() {
-  return (
-    <div style={{ border: `1px solid ${C.amberBorder}`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-      <div style={{ background: C.yellowCard, height: 36 }} />
-      {[0, 1, 2, 3, 4].map(i => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px', padding: '10px 14px', gap: 8, borderTop: i === 0 ? 'none' : `1px solid ${C.amberBorder}` }}>
-          <div className="animate-shimmer" style={{ height: 12, background: C.amberBorder, borderRadius: 4, width: `${50 + (i * 10) % 35}%` }} />
-          <div className="animate-shimmer" style={{ height: 12, background: C.amberBorder, borderRadius: 4 }} />
-          <div className="animate-shimmer" style={{ height: 12, background: C.amberBorder, borderRadius: 4 }} />
-        </div>
-      ))}
-    </div>
+    <tr className="align-top transition-colors hover:bg-cream">
+      <td className="px-5 py-3">
+        <div className="text-base font-medium text-ink">{row.component}</div>
+        {row.explanation && <div className="mt-0.5 text-sm leading-relaxed text-muted">{row.explanation}</div>}
+      </td>
+      <td className={`px-3 py-3 ${amountClass}`}>{isDeduction ? '−' : ''}{formatINR(row.monthly)}</td>
+      <td className={`hidden px-5 py-3 sm:table-cell ${amountClass}`}>{isDeduction ? '−' : ''}{formatINR(row.annual)}</td>
+    </tr>
   )
 }

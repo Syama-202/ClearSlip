@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { C } from '../utils/colors'
+import { X, CheckCircle2 } from 'lucide-react'
 
 export default function EmailModal({ isOpen, onClose, onSubmit, loading, sent }) {
   const [email, setEmail] = useState('')
@@ -24,94 +24,59 @@ export default function EmailModal({ isOpen, onClose, onSubmit, loading, sent })
   function handleKey(e) { if (e.key === 'Enter') handleSubmit() }
 
   return (
-    /* Overlay */
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(2px)', zIndex: 200,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      }}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
     >
-      {/* Card */}
-      <div style={{
-        background: C.cream, border: `1px solid ${C.amberBorder}`, borderRadius: 16,
-        padding: 28, width: '100%', maxWidth: 380, position: 'relative',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      }}>
-        {/* Close */}
-        <button onClick={onClose} style={{
-          position: 'absolute', top: 14, right: 14, background: 'none', border: 'none',
-          fontSize: 18, color: C.textMuted, cursor: 'pointer', padding: 4,
-        }}>✕</button>
+      <div role="dialog" aria-modal="true" aria-labelledby="email-modal-title"
+        className="relative w-full max-w-md rounded-2xl border border-line bg-cream p-7 shadow-2xl">
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-lg p-1.5 text-muted hover:bg-peach" aria-label="Close">
+          <X size={20} />
+        </button>
 
         {sent ? (
-          <SentState onClose={onClose} />
+          <div className="py-2 text-center">
+            <CheckCircle2 size={48} className="mx-auto text-good" />
+            <h2 className="mt-3 text-xl font-semibold text-terra">Checklist sent!</h2>
+            <p className="mt-2 text-base leading-relaxed text-muted">
+              Check your inbox. If you don't see it in 2 minutes, check your spam folder.
+            </p>
+            <button onClick={onClose} className="mt-5 rounded-xl bg-saffron-500 px-6 py-2.5 text-base font-semibold text-white hover:bg-saffron-600">
+              Done
+            </button>
+          </div>
         ) : (
           <>
-            <div style={{ fontSize: 17, fontWeight: 600, color: C.terra, marginBottom: 6 }}>Send your checklist</div>
-            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.5 }}>
+            <h2 id="email-modal-title" className="text-xl font-semibold text-terra">Send your checklist</h2>
+            <p className="mt-1.5 text-base leading-relaxed text-muted">
               We'll email your action items so you don't lose them. One email, no spam.
-            </div>
+            </p>
 
-            <div style={{ marginBottom: 6 }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={handleKey}
-                placeholder="your@email.com"
-                autoFocus
-                style={{
-                  width: '100%', padding: '10px 12px', fontSize: 14,
-                  border: `1px solid ${emailError ? C.red : C.amberBorder}`,
-                  borderRadius: 8, outline: 'none', fontFamily: 'inherit',
-                  background: '#fff', color: C.textDark, boxSizing: 'border-box',
-                }}
-                onFocus={e => e.target.style.boxShadow = `0 0 0 3px ${C.amberBorder}`}
-                onBlur={e => e.target.style.boxShadow = 'none'}
-              />
-              {emailError && <div style={{ fontSize: 12, color: C.red, marginTop: 4 }}>{emailError}</div>}
-            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="your@email.com"
+              aria-label="Email address"
+              autoFocus
+              className={`mt-5 w-full rounded-xl border bg-white px-4 py-3 text-base text-ink focus:outline-none focus:ring-4 focus:ring-saffron-100 ${emailError ? 'border-bad' : 'border-line focus:border-saffron-500'}`}
+            />
+            {emailError && <div className="mt-1.5 text-sm text-bad">{emailError}</div>}
 
             <button
               onClick={handleSubmit}
               disabled={loading}
-              style={{
-                width: '100%', padding: '11px 0', border: 'none', borderRadius: 8,
-                background: loading ? '#d1d5db' : C.maroon, color: '#fff',
-                fontSize: 14, fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer',
-                marginTop: 8, transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => { if (!loading) e.target.style.background = C.maroonDark }}
-              onMouseLeave={e => { if (!loading) e.target.style.background = C.maroon }}
+              className="mt-4 w-full rounded-xl bg-maroon py-3 text-base font-semibold text-white transition hover:bg-maroon-dark disabled:cursor-not-allowed disabled:bg-stone-300"
             >
               {loading ? 'Sending…' : 'Send checklist →'}
             </button>
-            <div style={{ textAlign: 'center', fontSize: 11, color: C.textFaint, marginTop: 10 }}>
+            <p className="mt-3 text-center text-sm text-muted">
               No account needed. We use your email only for this checklist.
-            </div>
+            </p>
           </>
         )}
       </div>
-    </div>
-  )
-}
-
-function SentState({ onClose }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '8px 0' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-      <div style={{ fontSize: 17, fontWeight: 600, color: C.terra, marginBottom: 8 }}>Checklist sent!</div>
-      <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.5 }}>
-        Check your inbox. If you don't see it in 2 minutes, check your spam folder.
-      </div>
-      <button onClick={onClose} style={{
-        background: C.saffron, color: '#fff', border: 'none', borderRadius: 8,
-        padding: '9px 24px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-      }}>
-        Done
-      </button>
     </div>
   )
 }

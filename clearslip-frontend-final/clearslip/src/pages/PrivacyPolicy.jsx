@@ -1,4 +1,4 @@
-import { C } from '../utils/colors'
+import { ArrowLeft } from 'lucide-react'
 
 export default function PrivacyPolicy({ onBack }) {
   const sections = [
@@ -42,37 +42,32 @@ We do not collect your name, phone number, Aadhaar, PAN, bank account number, or
   ]
 
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 24px', color: C.textDark }}>
-      <button onClick={onBack} style={{
-        background: 'none', border: 'none', color: C.saffron, fontSize: 13,
-        cursor: 'pointer', padding: 0, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 4,
-      }}>
-        ← Back to ClearSlip
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 text-ink md:px-8">
+      <button onClick={onBack} className="mb-8 flex items-center gap-1.5 text-base font-medium text-saffron-600 hover:text-saffron-700">
+        <ArrowLeft size={18} /> Back to ClearSlip
       </button>
 
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: C.terra, margin: '0 0 6px' }}>Privacy Policy</h1>
-        <div style={{ fontSize: 13, color: C.textMuted }}>ClearSlip · Last updated June 2026</div>
+      <h1 className="text-3xl font-bold tracking-tight text-terra md:text-4xl">Privacy Policy</h1>
+      <div className="mt-2 text-base text-muted">ClearSlip · Last updated November 2026</div>
+
+      <div className="mt-8 rounded-2xl border border-line bg-sand px-5 py-4 text-base leading-relaxed text-ink">
+        <strong className="text-terra">Short version:</strong> ClearSlip never stores your payslip data. Your analysis is session-only. If you email a checklist, we use your email only for that delivery and nothing else.
       </div>
 
-      <div style={{ fontSize: 14, color: C.textMid, lineHeight: 1.7, background: C.yellowCard, border: `1px solid ${C.amberBorder}`, borderRadius: 10, padding: '14px 18px', marginBottom: 28 }}>
-        <strong style={{ color: C.terra }}>Short version:</strong> ClearSlip never stores your payslip data. Your analysis is session-only. If you email a checklist, we use your email only for that delivery and nothing else.
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="mt-10 flex flex-col gap-8">
         {sections.map((s, i) => (
-          <div key={i}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: C.terra, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 22, height: 22, background: C.yellowCard, borderRadius: 99, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: C.saffron, border: `1px solid ${C.amberBorder}`, flexShrink: 0 }}>{i + 1}</span>
+          <section key={i}>
+            <h2 className="flex items-center gap-3 text-xl font-semibold text-terra">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-sand text-sm font-bold text-saffron-600">{i + 1}</span>
               {s.title}
             </h2>
-            <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line', paddingLeft: 30 }}>{s.content}</p>
-          </div>
+            <p className="mt-2 whitespace-pre-line pl-11 text-base leading-relaxed text-muted">{s.content}</p>
+          </section>
         ))}
       </div>
 
-      <div style={{ marginTop: 40, borderTop: `1px solid ${C.amberBorder}`, paddingTop: 20, fontSize: 12, color: C.textFaint, textAlign: 'center' }}>
-        Questions? Email <a href="mailto:privacy@clearslip.in" style={{ color: C.saffron }}>privacy@clearslip.in</a>
+      <div className="mt-12 border-t border-line pt-6 text-center text-base text-muted">
+        Questions? Email <a href="mailto:privacy@clearslip.in" className="font-medium text-saffron-600 hover:underline">privacy@clearslip.in</a>
       </div>
     </div>
   )

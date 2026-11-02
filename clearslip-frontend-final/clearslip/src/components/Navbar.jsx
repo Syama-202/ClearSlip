@@ -1,81 +1,68 @@
 import { useState } from 'react'
-import { C } from '../utils/colors'
+import { Menu, X } from 'lucide-react'
 
 export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, showGovtDocs }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <nav style={{
-      background: C.saffron, position: 'sticky', top: 0, zIndex: 50,
-      height: 56, display: 'flex', alignItems: 'center', padding: '0 24px',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
-    }}>
-      {/* Logo */}
-      <button onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: 0 }}>
-        <div style={{
-          width: 28, height: 28, background: '#fff', borderRadius: 6,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, fontSize: 13, color: C.saffron, flexShrink: 0,
-        }}>C</div>
-        <span style={{ color: '#fff', fontSize: 17, fontWeight: 600, letterSpacing: '-0.3px' }}>ClearSlip</span>
-      </button>
+    <nav className="sticky top-0 z-50 bg-saffron-500 shadow-sm">
+      <div className="relative mx-auto flex h-16 max-w-screen-2xl items-center px-4 md:px-8">
+        {/* Logo */}
+        <button onClick={onHome} className="flex items-center gap-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-lg font-bold text-saffron-500">C</span>
+          <span className="text-xl font-semibold tracking-tight text-white">ClearSlip</span>
+        </button>
 
-      {/* Desktop tabs */}
-      {/* display comes from the classes only — an inline display would override "hidden" */}
-      <div style={{ gap: 2, marginLeft: 28 }} className="hidden md:flex">
-        <TabBtn active={activeTab === 'payslip'} onClick={() => setActiveTab('payslip')}>Payslip Decoder</TabBtn>
-        {showGovtDocs && (
-          <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
-            Govt Docs <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', marginLeft: 4 }}>Beta</span>
-          </TabBtn>
+        {/* Desktop tabs */}
+        <div className="ml-10 hidden gap-1 md:flex">
+          <TabBtn active={activeTab === 'payslip'} onClick={() => setActiveTab('payslip')}>Payslip Decoder</TabBtn>
+          {showGovtDocs && (
+            <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
+              Govt Docs <span className="ml-1.5 rounded bg-white/25 px-1.5 py-0.5 text-xs">Beta</span>
+            </TabBtn>
+          )}
+        </div>
+
+        {/* Desktop right link */}
+        <div className="ml-auto hidden items-center md:flex">
+          <button onClick={onPrivacy} className="rounded-lg px-3 py-2 text-base text-white/90 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            Privacy
+          </button>
+        </div>
+
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMenuOpen(o => !o)}
+          className="ml-auto rounded-lg p-2 text-white md:hidden"
+          aria-label="Menu"
+        >
+          {menuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="absolute left-0 right-0 top-16 flex flex-col gap-1 bg-saffron-600 px-4 py-3 shadow-lg md:hidden">
+            <MobileTab active={activeTab === 'payslip'} onClick={() => { setActiveTab('payslip'); setMenuOpen(false) }}>Payslip Decoder</MobileTab>
+            {showGovtDocs && (
+              <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
+            )}
+            <hr className="my-1.5 border-white/20" />
+            <MobileTab active={false} onClick={() => { onPrivacy(); setMenuOpen(false) }}>Privacy Policy</MobileTab>
+          </div>
         )}
       </div>
-
-      {/* Desktop right link */}
-      <div style={{ marginLeft: 'auto', gap: 8, alignItems: 'center' }} className="hidden md:flex">
-        <button onClick={onPrivacy} style={{ color: 'rgba(255,255,255,0.8)', background: 'none', border: 'none', fontSize: 13, cursor: 'pointer', padding: '4px 8px' }}>
-          Privacy
-        </button>
-      </div>
-
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMenuOpen(o => !o)}
-        style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 22, padding: 4 }}
-        className="block md:hidden"
-        aria-label="Menu"
-      >
-        {menuOpen ? '✕' : '☰'}
-      </button>
-
-      {/* Mobile dropdown */}
-      {menuOpen && (
-        <div style={{
-          position: 'absolute', top: 56, left: 0, right: 0,
-          background: C.saffronDark, padding: '12px 24px', display: 'flex', flexDirection: 'column', gap: 4,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }} className="block md:hidden">
-          <MobileTab active={activeTab === 'payslip'} onClick={() => { setActiveTab('payslip'); setMenuOpen(false) }}>Payslip Decoder</MobileTab>
-          {showGovtDocs && (
-            <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
-          )}
-          <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.15)', margin: '6px 0' }} />
-          <MobileTab active={false} onClick={() => { onPrivacy(); setMenuOpen(false) }}>Privacy Policy</MobileTab>
-        </div>
-      )}
     </nav>
   )
 }
 
 function TabBtn({ active, onClick, children }) {
   return (
-    <button onClick={onClick} style={{
-      background: active ? '#fff' : 'transparent',
-      color: active ? C.saffron : 'rgba(255,255,255,0.8)',
-      border: 'none', borderRadius: 6, padding: '5px 12px',
-      fontSize: 13, fontWeight: active ? 500 : 400, cursor: 'pointer',
-      display: 'flex', alignItems: 'center', transition: 'all 0.15s',
-    }}>
+    <button
+      onClick={onClick}
+      className={`flex items-center rounded-lg px-4 py-2 text-base transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+        active ? 'bg-white font-medium text-saffron-600' : 'text-white/90 hover:bg-white/10 hover:text-white'
+      }`}
+    >
       {children}
     </button>
   )
@@ -83,12 +70,10 @@ function TabBtn({ active, onClick, children }) {
 
 function MobileTab({ active, onClick, children }) {
   return (
-    <button onClick={onClick} style={{
-      background: active ? 'rgba(255,255,255,0.15)' : 'none',
-      color: '#fff', border: 'none', borderRadius: 6,
-      padding: '10px 12px', fontSize: 14, fontWeight: active ? 500 : 400,
-      cursor: 'pointer', textAlign: 'left',
-    }}>
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-3 py-3 text-left text-base text-white ${active ? 'bg-white/15 font-medium' : ''}`}
+    >
       {children}
     </button>
   )

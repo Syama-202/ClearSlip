@@ -1,18 +1,22 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { UploadCloud, FileText, X } from 'lucide-react'
 import { preprocessImage, formatFileSize } from '../utils/preprocessImage'
-import { C } from '../utils/colors'
 
 export default function ImageUpload({ onImageReady }) {
   const [dragging, setDragging] = useState(false)
-  const [preview, setPreview] = useState(null)
+  const [preview, setPreview] = useState(null) // { name, size, url | null }
   const [error, setError] = useState('')
   const inputRef = useRef(null)
+
+  // Release the thumbnail's object URL when it is replaced or removed
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview])
 
   async function handleFile(file) {
     setError('')
     try {
       const result = await preprocessImage(file)
-      setPreview({ name: file.name, size: file.size, isImage: file.type.startsWith('image/') })
+      const url = file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+      setPreview({ name: file.name, size: file.size, url })
       onImageReady(result)
     } catch (err) {
       setError(err.message)
@@ -37,45 +41,41 @@ export default function ImageUpload({ onImageReady }) {
 
   if (preview) {
     return (
-      <div style={{ border: `1px solid ${C.amberBorder}`, borderRadius: 10, padding: 12, background: C.yellowCard, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 36, height: 36, background: C.saffron, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-          {preview.isImage ? '🖼️' : '📄'}
+      <div className="flex items-center gap-4 rounded-xl border border-line bg-sand p-3">
+        {preview.url
+          ? <img src={preview.url} alt="Payslip preview" className="h-20 w-16 shrink-0 rounded-lg border border-line bg-white object-cover" />
+          : <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-lg bg-saffron-500 text-white"><FileText size={28} /></div>}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-base font-medium text-terra">{preview.name}</div>
+          <div className="text-sm text-muted">{formatFileSize(preview.size)} · ready to decode</div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: C.terra, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preview.name}</div>
-          <div style={{ fontSize: 11, color: C.textMuted }}>{formatFileSize(preview.size)}</div>
-        </div>
-        <button onClick={clearFile} style={{ background: 'none', border: 'none', color: C.maroon, cursor: 'pointer', fontSize: 16, padding: 4, flexShrink: 0 }} aria-label="Remove file">✕</button>
+        <button onClick={clearFile} className="rounded-lg p-2 text-maroon hover:bg-white" aria-label="Remove file">
+          <X size={20} />
+        </button>
       </div>
     )
   }
 
   return (
     <div>
-      <div
+      <button
+        type="button"
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
-        style={{
-          border: `2px dashed ${dragging ? C.saffron : C.amberBorder}`,
-          borderRadius: 10, padding: '24px 16px', cursor: 'pointer',
-          background: dragging ? C.saffronLight : '#fff',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          transition: 'all 0.15s',
-        }}
+        className={`flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-saffron-100 ${
+          dragging ? 'border-saffron-500 bg-saffron-50' : 'border-line bg-white hover:border-saffron-500/50'
+        }`}
       >
-        <div style={{ fontSize: 28 }}>📷</div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.terra }}>Drag your payslip photo here</div>
-        <div style={{ fontSize: 12, color: C.textMuted }}>or click to browse</div>
-        <div style={{ fontSize: 11, color: C.textFaint, marginTop: 4 }}>JPEG, PNG, PDF — max 5MB</div>
-      </div>
-      {error && <div style={{ fontSize: 12, color: C.red, marginTop: 6 }}>{error}</div>}
-      <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>
-        💡 Tip: bright light, full page visible, no blur gives best results
-      </div>
+        <UploadCloud size={36} className="text-saffron-500" />
+        <span className="text-base font-medium text-terra">Drop your payslip here</span>
+        <span className="text-sm text-muted">or click to browse · JPEG, PNG, PDF up to 5 MB</span>
+      </button>
+      {error && <div className="mt-2 text-sm text-bad">{error}</div>}
+      <p className="mt-2 text-sm text-muted">Tip: bright light, the full page in view and no blur give the best results.</p>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
-        style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+        className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
     </div>
   )
 }
