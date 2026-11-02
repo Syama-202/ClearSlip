@@ -3,6 +3,7 @@ import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
 import GovtDocs from './pages/GovtDocs.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
+import Ask from './pages/Ask.jsx'
 
 // The Govt Docs page is UI only — its "Get guide" button has no content
 // behind it yet — so it stays hidden until the guides exist
@@ -10,7 +11,7 @@ const SHOW_GOVT_DOCS = false
 
 export default function App() {
   const [page, setPage] = useState('main')       // 'main' | 'privacy'
-  const [activeTab, setActiveTab] = useState('payslip') // 'payslip' | 'govtdocs'
+  const [activeTab, setActiveTab] = useState('payslip') // 'payslip' | 'ask' | 'govtdocs'
 
   return (
     <div className="flex min-h-screen flex-col bg-cream">
@@ -24,6 +25,7 @@ export default function App() {
       <main className="flex flex-1 flex-col">
         {page === 'privacy' && <PrivacyPolicy onBack={() => setPage('main')} />}
         {page === 'main' && activeTab === 'payslip' && <Home />}
+        {page === 'main' && activeTab === 'ask' && <Ask />}
         {page === 'main' && activeTab === 'govtdocs' && SHOW_GOVT_DOCS && <GovtDocs />}
       </main>
       <footer className="border-t border-line bg-peach px-4 py-4 text-center text-sm text-muted">

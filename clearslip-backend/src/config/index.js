@@ -6,6 +6,9 @@ export const config = {
   // Optional — without it, low-confidence payslips return a clear 422 instead of using the LLM fallback
   groqApiKey: process.env.GROQ_API_KEY || '',
   groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+  // Dense (embedding) retrieval for Ask ClearSlip. Off in tests so they
+  // never download the model; RAG_DENSE=off falls back to BM25 only.
+  ragDense: process.env.RAG_DENSE ? process.env.RAG_DENSE !== 'off' : process.env.NODE_ENV !== 'test',
   // Optional — without it, POST /api/checklist returns a clear 503
   n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
   n8nSecret: process.env.N8N_SECRET || '',

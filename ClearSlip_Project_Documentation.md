@@ -66,13 +66,15 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | Decode pipeline wired end to end (OCR → rules → fallback) | `src/controllers/decodeController.js` | ✅ Done — response includes `engine: "rules" \| "llm-fallback"` |
 | Tax slabs updated to Budget 2025 (FY 2025-26) + 4% cess + 87A marginal relief | `src/services/rulesEngine.js`, `src/prompts/fallbackPrompt.js` | ✅ Done |
 | Parser handles real layouts: two-column lines, YTD columns, `k`/`L`/`Cr` units, PF No/UAN/employer lines ignored | `src/services/rulesEngine.js` | ✅ Done — see §4.1–4.2 |
-| Jest + Supertest test suite (99 tests) | `tests/` | ✅ Done — see §9 |
+| Jest + Supertest test suite (166 tests) | `tests/` | ✅ Done — see §9 |
 | Tested against 6 real-world payslip formats from Indian HR websites (text + OCR) | `tests/webSamples.test.js` | ✅ Done — 6/6, see §9.1 |
 | Demo-readiness: dead "Sign in"/"Get started" buttons removed; unfinished Govt Docs tab hidden (`SHOW_GOVT_DOCS` in `App.jsx`) | `Navbar.jsx`, `App.jsx` | ✅ Done |
 | UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
 | Phone layout fixed: inline styles were overriding Tailwind's responsive classes, so panels never stacked and desktop nav links showed on phones | `Home.jsx`, `Navbar.jsx` | ✅ Done — checked at 375 px and 1280 px |
 | Git repository + deployment config (`render.yaml`, root `README.md`) | repo root | ✅ Done — deploy itself still to do (§10) |
 | UI redesign for laptop/desktop screens: rem-based type scale (body 16 px, figures 30 px — was 94% of text at 12–13 px), centred layout up to 1536 px with a sticky input card, side-by-side results on wide screens, welcome screen with "Try a sample payslip", explanations shown under each component, lucide icons, WCAG-AA text colours, inline styles replaced by Tailwind tokens | `tailwind.config.js`, all components | ✅ Done — checked at 375, 1440 and 1920 px |
+| **Ask ClearSlip (RAG):** hybrid retrieval over a 16-document tax knowledge base, cited answers, LLM tool calls to the tax calculators, relevance guard, retrieval evaluation (hybrid Hit@1 97.1%) | `src/rag/`, `askService.js`, `AskPanel.jsx` | ✅ Done — see §12 |
+| Old-regime calculator, regime comparison and HRA exemption calculator | `src/services/taxCalculator.js` | ✅ Done — used by Ask ClearSlip |
 | OCR ₹-misread correction using the payslip's own totals | `src/services/rulesEngine.js` | ✅ Done — see §9.1 |
 | Labelled 12-digit UANs no longer rejected as Aadhaar numbers | `src/controllers/decodeController.js` | ✅ Done |
 | Frontend build setup (Vite + Tailwind) | `package.json`, `index.html`, `vite.config.js`, `postcss.config.js` | ✅ Done |
@@ -185,9 +187,9 @@ Route to LLM fallback (or return a clear error if no fallback is configured) whe
 | Day | Feature | Why it matters for evaluation |
 |---|---|---|
 | 1 | JWT auth + user model + decode-history persistence (DB) | Turns the project from a stateless API demo into a real application |
-| 2 | Old vs New tax regime comparator (add old-regime slab function alongside §4.7) | Most-requested real-world feature; reuses existing engine |
+| 2 | ~~Old vs New tax regime comparator~~ ✅ done as a calculator + Ask ClearSlip tool (§12) | Most-requested real-world feature; reuses existing engine |
 | 2 | History/trend dashboard (Recharts: take-home & tax over time) | Demonstrates data visualization + persistence together |
-| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (99 tests) — add old-regime tests with the comparator | Shows testing discipline — high grading value for low effort |
+| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (166 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
 | 3 | ~~Bug fixing against edge cases (unusual formats)~~ ✅ two-column/YTD/units done — test with more real payslip photos | Real debugging, not just feature-adding |
 | 4 | Deployment (Railway/Render, backend + frontend) | Required for a working demo/viva |
 | 4 | UI polish pass | Presentation quality |
@@ -324,7 +326,7 @@ The original `payslipDecoder.js` prompt (used with Claude's vision API) has been
 
 ---
 
-## 9. Testing (done — 99 automated tests, all passing)
+## 9. Testing (done — 166 automated tests, all passing)
 
 Run with `npm test` in `clearslip-backend` (Jest + Supertest).
 
@@ -368,6 +370,77 @@ choosing the one that leaves the smallest unexplained amount, then the fewest ch
 - **Variables:** backend `FRONTEND_URL` (required, for CORS), `GROQ_API_KEY` / `N8N_WEBHOOK_URL` / `N8N_SECRET` (optional); frontend `VITE_API_URL` (baked in at build time, so redeploy after setting it).
 - **Production fixes already made:** Express trusts the host's proxy in production, so rate limits apply per user rather than to everyone behind Render's proxy; the frontend waits up to 90 s for a reply, covering a free-tier cold start (~1 min) plus the first-run OCR language download (~10 MB, written to the app folder, which is writable on Render).
 - **Not yet done:** the actual deploy (needs a GitHub repo and a Render account) and a check of the live URLs.
+
+---
+
+## 12. Ask ClearSlip — Retrieval-Augmented Generation (RAG)
+
+### 12.1 What it does
+Users ask questions in plain language — "Which regime is better for me?", "Can I claim rent paid to my mother?" — on the **Ask ClearSlip** page or under their decoded payslip. Answers come only from a knowledge base of Indian salary-tax rules, cite the exact passage they rely on, and get every number from ClearSlip's tested tax calculators rather than from the language model.
+
+### 12.2 Architecture
+```
+question (+ decoded payslip, + last turns)
+        │
+        ▼
+ retrieve top 5 passages ── BM25 (keywords + synonyms) ─┐
+        │                └─ dense embeddings (bge-small) ┴─► Reciprocal Rank Fusion
+        ▼
+ relevant? ──no──► "I couldn't find this in my sources" (no LLM call)
+        │yes
+        ▼
+ GROQ_API_KEY set? ──no──► return the passages with sources ("sources only" mode)
+        │yes
+        ▼
+ Llama 3.3 70B (Groq) with numbered SOURCES + payslip + 3 tools
+        │   ├─ compare_tax_regimes ─┐
+        │   ├─ calculate_tax        ├─► src/services/taxCalculator.js (deterministic, unit-tested)
+        │   └─ calculate_hra_exemption ┘
+        ▼
+ answer with [n] citations → cited sources + tool results shown in the UI
+```
+
+| Part | File |
+|---|---|
+| Knowledge base — 16 documents, 73 sections, ~3,950 words | `src/rag/corpus/*.md` |
+| Chunking (one chunk per section) + corpus hash | `src/rag/corpus.js` |
+| BM25 keyword search with payslip synonyms | `src/rag/bm25.js` |
+| Local embeddings (`Xenova/bge-small-en-v1.5`, 384-d, free) | `src/rag/embeddings.js` |
+| Hybrid retrieval, RRF fusion, relevance guard | `src/rag/knowledgeBase.js` |
+| Precomputed embeddings (`npm run rag:index`) | `src/rag/index.json`, `scripts/buildRagIndex.js` |
+| Tools exposed to the model | `src/rag/tools.js` |
+| Tax calculators (new/old regime, comparison, HRA) | `src/services/taxCalculator.js` |
+| Grounded system prompt | `src/prompts/askPrompt.js` |
+| Orchestration: retrieve → guard → LLM + tool loop → citations | `src/services/askService.js` |
+| API | `POST /api/ask` (`src/routes/ask.js`) |
+| UI | `AskPanel.jsx`, `AnswerText.jsx`, `pages/Ask.jsx` |
+
+### 12.3 Design decisions (viva notes)
+- **Why hybrid retrieval?** BM25 is exact on section numbers and terms ("80CCD(1B)", "Form 16"); embeddings match meaning when the words differ ("Why is 12% of my basic cut every month?" → EPF). Reciprocal Rank Fusion (score = Σ 1/(60 + rank)) combines them without having to calibrate their very different score scales.
+- **Why one chunk per section?** Each section is short and self-contained, so a citation points at exactly the passage that supports the sentence.
+- **Why tools for numbers?** LLMs make arithmetic mistakes. The model only decides *which* calculation to run and with which inputs; the tested calculator produces the number, and the UI shows the tool's result next to the answer so it can be checked.
+- **Guardrails:** refuse when retrieval finds nothing relevant (no LLM call); the prompt allows only cited sources and tool results; PAN/Aadhaar in a question is rejected; malformed tool calls from the model are retried once without tools; at most 3 tool rounds.
+- **Works without an API key:** in "sources only" mode the same retrieval returns the matching passages, so the feature can be demonstrated offline.
+- **Free to run:** embeddings are computed locally with transformers.js; generation uses Groq's free tier.
+
+### 12.4 Evaluation (`npm run rag:eval`)
+35 questions written the way a first-time employee asks them, each labelled with the document that answers it (`tests/fixtures/ragEval.js`), plus 4 off-topic questions.
+
+| Retrieval method | Hit@1 | Hit@3 | MRR |
+|---|---|---|---|
+| BM25 only | 94.3% | 100.0% | 0.962 |
+| Dense (embeddings) only | 91.4% | 97.1% | 0.949 |
+| **Hybrid (BM25 + dense, RRF)** | **97.1%** | 97.1% | **0.979** |
+
+- **Relevance guard:** 4/4 off-topic questions refused, 35/35 on-topic questions answered. Thresholds were set from this data (off-topic questions top out at BM25 ≈ 4.0 / cosine ≈ 0.49; on-topic start at ≈ 6.0 / 0.60), with the cut-off between them (BM25 5, cosine 0.55).
+- **Automated tests:** `tests/rag.test.js` (chunking, tokenizer, every evaluation question in BM25's top 3, guard, RRF, citations, the API in all three modes, and the full tool-calling loop with Groq mocked) and `tests/regimes.test.js` (calculators, hand-worked values). Total suite: 166 tests.
+- **Honest caveats:** the questions were written alongside the knowledge base, so these scores are likely optimistic — adding questions from real users would make the evaluation stronger. Answer quality with the live model (faithfulness to sources) was not measured, because no Groq key was available during development; the tool-calling flow is tested with a mocked model.
+
+### 12.5 Limitations
+- The knowledge base is ClearSlip's own plain-language summary of the rules, each section citing its official source and legal reference — not the full text of the Act. It must be reviewed when rules change (e.g. each Budget), then re-indexed with `npm run rag:index` (a test fails if the index is stale).
+- Calculators ignore surcharge (income above ₹50 lakh) and flag it; senior-citizen slabs are not modelled.
+- State-specific professional-tax slabs are not covered in detail.
+- The embedding model (~35 MB) downloads on the first question after a deploy; set `RAG_DENSE=off` to use BM25 only on very small servers.
 
 ---
 

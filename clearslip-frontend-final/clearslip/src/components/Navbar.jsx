@@ -16,6 +16,7 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, sho
         {/* Desktop tabs */}
         <div className="ml-10 hidden gap-1 md:flex">
           <TabBtn active={activeTab === 'payslip'} onClick={() => setActiveTab('payslip')}>Payslip Decoder</TabBtn>
+          <TabBtn active={activeTab === 'ask'} onClick={() => setActiveTab('ask')}>Ask ClearSlip</TabBtn>
           {showGovtDocs && (
             <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
               Govt Docs <span className="ml-1.5 rounded bg-white/25 px-1.5 py-0.5 text-xs">Beta</span>
@@ -43,6 +44,7 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, sho
         {menuOpen && (
           <div className="absolute left-0 right-0 top-16 flex flex-col gap-1 bg-saffron-600 px-4 py-3 shadow-lg md:hidden">
             <MobileTab active={activeTab === 'payslip'} onClick={() => { setActiveTab('payslip'); setMenuOpen(false) }}>Payslip Decoder</MobileTab>
+            <MobileTab active={activeTab === 'ask'} onClick={() => { setActiveTab('ask'); setMenuOpen(false) }}>Ask ClearSlip</MobileTab>
             {showGovtDocs && (
               <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
             )}

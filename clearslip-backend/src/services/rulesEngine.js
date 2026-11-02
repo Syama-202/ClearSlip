@@ -7,6 +7,8 @@
  * (now removed) and src/prompts/fallbackPrompt.js.
  */
 
+import { estimateAnnualTax } from './taxCalculator.js'
+
 const COMPONENTS = [
   // Earnings
   { key: 'basic', label: 'Basic Salary', type: 'earning', pattern: /\bbasic(\s*(salary|pay))?\b/i,
@@ -387,40 +389,8 @@ export function parsePayslipText(rawText, { fromOcr = false } = {}) {
 }
 
 
-/**
- * New Regime FY2025-26 (Budget 2025): ₹75,000 standard deduction, full
- * 87A rebate up to ₹12L taxable income (with marginal relief just above
- * it), plus 4% health & education cess.
- */
-export function estimateAnnualTax(annualGross) {
-  const taxable = Math.max(0, annualGross - 75000)
-  const REBATE_LIMIT = 1200000
-  if (taxable <= REBATE_LIMIT) return 0 // rebate u/s 87A
-
-  const slabs = [
-    { upto: 400000, rate: 0 },
-    { upto: 800000, rate: 0.05 },
-    { upto: 1200000, rate: 0.10 },
-    { upto: 1600000, rate: 0.15 },
-    { upto: 2000000, rate: 0.20 },
-    { upto: 2400000, rate: 0.25 },
-    { upto: Infinity, rate: 0.30 },
-  ]
-
-  let tax = 0
-  let lower = 0
-  for (const slab of slabs) {
-    if (taxable <= lower) break
-    const upper = Math.min(taxable, slab.upto)
-    tax += Math.max(0, upper - lower) * slab.rate
-    lower = slab.upto
-  }
-
-  // Marginal relief: tax can't exceed the income earned above the rebate limit
-  tax = Math.min(tax, taxable - REBATE_LIMIT)
-
-  return Math.round(tax * 1.04) // + 4% cess
-}
+// Re-exported so existing callers and tests keep importing it from here
+export { estimateAnnualTax }
 
 function buildActionItems({ found, grossMonthly, tdsAnnual }) {
   const items = []

@@ -5,6 +5,7 @@ import { corsMiddleware } from './middleware/cors.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import decodeRouter from './routes/decode.js'
 import checklistRouter from './routes/checklist.js'
+import askRouter from './routes/ask.js'
 import healthRouter from './routes/health.js'
 
 const app = express()
@@ -34,12 +35,13 @@ app.get('/', (req, res) => {
     service: 'ClearSlip API',
     status: 'ok',
     message: `This is the ClearSlip backend. Open the website at ${config.frontendUrl}`,
-    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/checklist'],
+    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/ask', 'POST /api/checklist'],
   })
 })
 app.use('/api/health', healthRouter)
 app.use('/api/decode', decodeRouter)
 app.use('/api/checklist', checklistRouter)
+app.use('/api/ask', askRouter)
 
 // ── 404 & error handler ─────────────────────────────────────────
 app.use(notFound)

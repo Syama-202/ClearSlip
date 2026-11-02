@@ -11,6 +11,7 @@ app.listen(config.port, () => {
   Routes:
     GET  /api/health
     POST /api/decode
+    POST /api/ask
     POST /api/checklist
   Optional features:
     LLM fallback     ${config.groqApiKey ? 'on' : 'off — set GROQ_API_KEY (free at console.groq.com)'}

@@ -49,6 +49,30 @@ export const checklistRequestSchema = z.object({
     .optional(),
 })
 
+export const askRequestSchema = z.object({
+  question: z.string().trim().min(2, 'Please type a question').max(500),
+  // The decoded payslip, so answers can use the user's own figures
+  payslip: z
+    .object({
+      summary: z.record(z.number()).optional(),
+      breakdown: z
+        .array(z.object({
+          component: z.string().max(80),
+          type: z.enum(['earning', 'deduction']),
+          monthly: z.number(),
+          annual: z.number(),
+        }).passthrough())
+        .max(30),
+    })
+    .passthrough()
+    .optional(),
+  // Recent turns, for follow-up questions
+  history: z
+    .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(2000) }))
+    .max(6)
+    .optional(),
+})
+
 export function validate(schema, data) {
   const result = schema.safeParse(data)
   if (!result.success) {

@@ -7,6 +7,7 @@ import ActionCard from '../components/ActionCard.jsx'
 import EmailModal from '../components/EmailModal.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadingState from '../components/LoadingState.jsx'
+import AskPanel from '../components/AskPanel.jsx'
 import useClaudeApi from '../hooks/useClaudeApi.js'
 import useServerFeatures from '../hooks/useServerFeatures.js'
 import { buildClaudeMessage } from '../utils/buildClaudeMessage.js'
@@ -129,6 +130,12 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            {/* Questions answered with the user's own figures */}
+            <AskPanel
+              payslip={{ summary: analysisData.summary, breakdown: analysisData.breakdown }}
+              aiAvailable={aiAvailable}
+            />
 
             {analysisData.disclaimer && (
               <p className="flex gap-2 border-t border-line pt-4 text-sm leading-relaxed text-muted">
