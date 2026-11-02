@@ -1,5 +1,6 @@
 import express from 'express'
 import helmet from 'helmet'
+import { config } from './config/index.js'
 import { corsMiddleware } from './middleware/cors.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import decodeRouter from './routes/decode.js'
@@ -27,6 +28,15 @@ if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
 }
 
 // ── Routes ──────────────────────────────────────────────────────
+// Opening the API's address in a browser lands here — point people to the site
+app.get('/', (req, res) => {
+  res.status(200).json({
+    service: 'ClearSlip API',
+    status: 'ok',
+    message: `This is the ClearSlip backend. Open the website at ${config.frontendUrl}`,
+    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/checklist'],
+  })
+})
 app.use('/api/health', healthRouter)
 app.use('/api/decode', decodeRouter)
 app.use('/api/checklist', checklistRouter)

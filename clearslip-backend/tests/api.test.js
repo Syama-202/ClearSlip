@@ -39,6 +39,14 @@ const pdfBody = base64 => ({
   messages: [{ type: 'image', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }],
 })
 
+describe('GET /', () => {
+  test('explains this is the API and points to the website', async () => {
+    const res = await request(app).get('/')
+    expect(res.status).toBe(200)
+    expect(res.body.message).toMatch(/Open the website at http/)
+  })
+})
+
 describe('GET /api/health', () => {
   test('reports ok', async () => {
     const res = await request(app).get('/api/health')
