@@ -8,6 +8,7 @@ import EmailModal from '../components/EmailModal.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import LoadingState from '../components/LoadingState.jsx'
 import AskPanel from '../components/AskPanel.jsx'
+import WhatIfSimulator from '../components/WhatIfSimulator.jsx'
 import useClaudeApi from '../hooks/useClaudeApi.js'
 import useServerFeatures from '../hooks/useServerFeatures.js'
 import { buildClaudeMessage } from '../utils/buildClaudeMessage.js'
@@ -130,6 +131,9 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            {/* Deductions tried out live against both regimes */}
+            <WhatIfSimulator breakdown={analysisData.breakdown} />
 
             {/* Questions answered with the user's own figures */}
             <AskPanel

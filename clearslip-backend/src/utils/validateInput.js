@@ -73,6 +73,23 @@ export const askRequestSchema = z.object({
     .optional(),
 })
 
+// What-if simulator inputs, all annual rupees except monthly rent
+const amount = (max) => z.number().min(0).max(max).optional()
+export const simulateRequestSchema = z.object({
+  grossAnnual: z.number().positive('Enter your yearly salary').max(100000000),
+  basicAnnual: amount(100000000),
+  daAnnual: amount(100000000),
+  hraReceivedAnnual: amount(100000000),
+  employeePfAnnual: amount(10000000),
+  professionalTaxAnnual: amount(100000),
+  extra80C: amount(10000000),
+  nps80CCD1B: amount(10000000),
+  health80D: amount(10000000),
+  rentPaidMonthly: amount(10000000),
+  metro: z.boolean().optional(),
+  homeLoanInterest: amount(10000000),
+})
+
 export function validate(schema, data) {
   const result = schema.safeParse(data)
   if (!result.success) {

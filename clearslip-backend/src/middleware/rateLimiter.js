@@ -26,6 +26,20 @@ export const askRateLimiter = rateLimit({
   skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1',
 })
 
+// Sliders send a request every time they settle, so this allows far more than
+// decoding does — the calculation is cheap and uses no AI
+export const simulateRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many changes at once. Please wait a moment.',
+    code: 'RATE_LIMIT_EXCEEDED',
+  },
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1',
+})
+
 export const checklistRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,

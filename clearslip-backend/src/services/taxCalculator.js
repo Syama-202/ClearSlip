@@ -137,6 +137,27 @@ export function compareRegimes(grossSalary, deductions = {}) {
   return { newRegime, oldRegime, better, annualSaving: difference }
 }
 
+/**
+ * The total old-regime deductions (on top of the standard deduction) at which
+ * the old regime's tax falls to the new regime's. Below this the new regime
+ * costs less, whatever mix of 80C, 80D, HRA etc. makes up the total.
+ */
+export function oldRegimeBreakEven(grossSalary, { employerNps = 0, basicPlusDa = 0 } = {}) {
+  const gross = toAmount(grossSalary)
+  const newTax = newRegimeTax(gross, { employerNps, basicPlusDa }).totalTax
+  // Old-regime tax only falls as deductions rise, so binary-search the smallest total
+  // that matches. HRA exemption has no cap, so it stands in for "any deduction" here.
+  const oldTax = d => oldRegimeTax(gross, { hraExemption: d, employerNps, basicPlusDa }).totalTax
+  let low = 0
+  let high = gross
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2)
+    if (oldTax(mid) <= newTax) high = mid
+    else low = mid + 1
+  }
+  return { newRegimeTax: newTax, deductionsNeeded: low }
+}
+
 // Section 10(13A) / Rule 2A: metro cities get 50% of salary, others 40%
 const METRO_CITIES = ['delhi', 'new delhi', 'mumbai', 'kolkata', 'chennai']
 

@@ -66,7 +66,7 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | Decode pipeline wired end to end (OCR → rules → fallback) | `src/controllers/decodeController.js` | ✅ Done — response includes `engine: "rules" \| "llm-fallback"` |
 | Tax slabs updated to Budget 2025 (FY 2025-26) + 4% cess + 87A marginal relief | `src/services/rulesEngine.js`, `src/prompts/fallbackPrompt.js` | ✅ Done |
 | Parser handles real layouts: two-column lines, YTD columns, `k`/`L`/`Cr` units, PF No/UAN/employer lines ignored | `src/services/rulesEngine.js` | ✅ Done — see §4.1–4.2 |
-| Jest + Supertest test suite (177 tests) | `tests/` | ✅ Done — see §9 |
+| Jest + Supertest test suite (187 tests) | `tests/` | ✅ Done — see §9 |
 | Tested against 6 real-world payslip formats from Indian HR websites (text + OCR) | `tests/webSamples.test.js` | ✅ Done — 6/6, see §9.1 |
 | Demo-readiness: dead "Sign in"/"Get started" buttons removed; unfinished Govt Docs tab hidden (`SHOW_GOVT_DOCS` in `App.jsx`) | `Navbar.jsx`, `App.jsx` | ✅ Done |
 | UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
@@ -75,6 +75,7 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | UI redesign for laptop/desktop screens: rem-based type scale (body 16 px, figures 30 px — was 94% of text at 12–13 px), centred layout up to 1536 px with a sticky input card, side-by-side results on wide screens, welcome screen with "Try a sample payslip", explanations shown under each component, lucide icons, WCAG-AA text colours, inline styles replaced by Tailwind tokens | `tailwind.config.js`, all components | ✅ Done — checked at 375, 1440 and 1920 px |
 | **Ask ClearSlip (RAG):** hybrid retrieval over a 16-document tax knowledge base, cited answers, LLM tool calls to the tax calculators, relevance guard, retrieval evaluation (hybrid Hit@1 97.1%) | `src/rag/`, `askService.js`, `AskPanel.jsx` | ✅ Done — see §12 |
 | Old-regime calculator, regime comparison and HRA exemption calculator | `src/services/taxCalculator.js` | ✅ Done — used by Ask ClearSlip |
+| **What-if tax simulator:** sliders for 80C, NPS, 80D, rent/HRA and home-loan interest, both regimes updated live, break-even point, step-by-step calculation | `taxSimulator.js`, `POST /api/tax/simulate`, `WhatIfSimulator.jsx` | ✅ Done — see §13 |
 | OCR ₹-misread correction using the payslip's own totals | `src/services/rulesEngine.js` | ✅ Done — see §9.1 |
 | Labelled 12-digit UANs no longer rejected as Aadhaar numbers | `src/controllers/decodeController.js` | ✅ Done |
 | Frontend build setup (Vite + Tailwind) | `package.json`, `index.html`, `vite.config.js`, `postcss.config.js` | ✅ Done |
@@ -189,7 +190,7 @@ Route to LLM fallback (or return a clear error if no fallback is configured) whe
 | 1 | JWT auth + user model + decode-history persistence (DB) | Turns the project from a stateless API demo into a real application |
 | 2 | ~~Old vs New tax regime comparator~~ ✅ done as a calculator + Ask ClearSlip tool (§12) | Most-requested real-world feature; reuses existing engine |
 | 2 | History/trend dashboard (Recharts: take-home & tax over time) | Demonstrates data visualization + persistence together |
-| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (177 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
+| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (187 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
 | 3 | ~~Bug fixing against edge cases (unusual formats)~~ ✅ two-column/YTD/units done — test with more real payslip photos | Real debugging, not just feature-adding |
 | 4 | Deployment (Railway/Render, backend + frontend) | Required for a working demo/viva |
 | 4 | UI polish pass | Presentation quality |
@@ -205,7 +206,6 @@ These were discussed as good ideas but are explicitly **out of scope** for the 5
 | Feature | Reason deferred |
 |---|---|
 | Offer comparison tool (compare two CTC breakdowns side by side) | Nice-to-have; reuses existing engine but adds UI + testing time not available |
-| What-if investment simulator (live slider-based tax impact) | Interactive UI work, not essential to core evaluation criteria |
 | PDF export of the report | Polish item, not core functionality |
 | Multi-language support (Hindi/regional, i18next) | High-value for real users but time-intensive to do properly (translation + testing) |
 | Reminder system (node-cron + email) | Depends on n8n pipeline extension; scope creep risk |
@@ -214,7 +214,7 @@ These were discussed as good ideas but are explicitly **out of scope** for the 5
 | Docker/Compose packaging | Useful for deployment story but not required if Railway/Render deployment works |
 | Swagger/OpenAPI docs | Documentation nice-to-have; this document + README cover the same ground for report purposes |
 
-**If ahead of schedule after Day 4**, the recommended order to pick these back up is: Offer comparator → PDF export → What-if simulator (in that order, by effort-to-value ratio).
+**If ahead of schedule after Day 4**, the recommended order to pick these back up is: Offer comparator → PDF export (in that order, by effort-to-value ratio). The what-if simulator was built — see §13.
 
 ---
 
@@ -326,7 +326,7 @@ The original `payslipDecoder.js` prompt (used with Claude's vision API) has been
 
 ---
 
-## 9. Testing (done — 177 automated tests, all passing)
+## 9. Testing (done — 187 automated tests, all passing)
 
 Run with `npm test` in `clearslip-backend` (Jest + Supertest).
 
@@ -437,7 +437,7 @@ question (+ decoded payslip, + last turns)
 | **Hybrid (BM25 + dense, RRF)** | **97.3%** | 97.3% | **0.980** |
 
 - **Relevance guard:** 4/4 off-topic questions refused, 37/37 on-topic questions answered. Thresholds were set from this data (off-topic questions top out at BM25 ≈ 4.0 / cosine ≈ 0.49; on-topic start at ≈ 6.0 / 0.60), with the cut-off between them (BM25 5, cosine 0.55).
-- **Automated tests:** `tests/rag.test.js` (chunking, tokenizer, every evaluation question in BM25's top 3, guard, RRF, citations, the API in all three modes, and the full tool-calling loop with Groq mocked) and `tests/regimes.test.js` (calculators, hand-worked values). The rate-limit / expired-key fallbacks, forced regime comparison, tool-call retry and citation clean-up are tested with Groq mocked. Total suite: 177 tests.
+- **Automated tests:** `tests/rag.test.js` (chunking, tokenizer, every evaluation question in BM25's top 3, guard, RRF, citations, the API in all three modes, and the full tool-calling loop with Groq mocked) and `tests/regimes.test.js` (calculators, hand-worked values). The rate-limit / expired-key fallbacks, forced regime comparison, tool-call retry and citation clean-up are tested with Groq mocked. The what-if simulator has its own tests (§13.3). Total suite: 187 tests.
 - **Honest caveats:** the questions were written alongside the knowledge base, so these scores are likely optimistic — adding questions from real users would make the evaluation stronger. The live answer check below is a small manual review (6 questions), not a large-scale faithfulness benchmark.
 
 #### Live answer check (Groq `openai/gpt-oss-120b`, 2 Nov 2026)
@@ -467,6 +467,31 @@ Token use is about 2,000 per model call (≈4,000 for a question that calls a to
 - State-specific professional-tax slabs are not covered in detail.
 - The embedding model (~35 MB) downloads on the first question after a deploy; set `RAG_DENSE=off` to use BM25 only on very small servers.
 - Groq's free tier allows about two AI answers a minute (8,000 tokens per minute); a paid tier or a smaller model (`GROQ_MODEL`) raises this. Groq retires models over time — Llama 3.3 70B, the original choice, was no longer available by November 2026 — so the model is configurable and an unavailable model degrades to sources-only answers.
+
+## 13. What-if Tax Simulator
+
+### 13.1 What it does
+Under the decoded payslip, the user drags sliders for the deductions a salaried person can actually change — extra 80C investments, own NPS (80CCD(1B)), health insurance (80D), monthly rent (unlocks HRA exemption, with a metro toggle) and home-loan interest (24(b)) — and can edit the yearly salary to try a raise. Both regimes' tax updates as they drag, with:
+- which regime is lower and by how much, per year and per month;
+- the **break-even point**: the total old-regime deductions at which the old regime starts to win, and how far the current choices are from it;
+- the HRA exemption with all three limits shown;
+- a "How this is calculated" breakdown (gross → standard deduction → other deductions → taxable income → slab tax → rebate / marginal relief → cess → total).
+
+### 13.2 How it works
+- **Same calculator everywhere.** `POST /api/tax/simulate` (`taxController.js` → `taxSimulator.js`) runs the inputs through `taxCalculator.js` — the code the decoder's estimate and Ask ClearSlip's tool calls already use. One tested implementation of the tax rules, not a second copy in the browser.
+- **Why on the server, not in the browser?** The frontend and backend deploy as separate services, each built from its own folder (`rootDir` in `render.yaml`), so importing the backend's file into the frontend would tie the two builds together, and copying it would leave two versions to keep in step. Each request is a few milliseconds of arithmetic with no AI, so the round-trip is the only cost.
+- **Prefilled from the payslip.** Basic, DA, HRA received, employee PF and professional tax are read from the breakdown (matched by name, so AI-decoded labels work too). PF already counts towards 80C, so the 80C slider only offers what is left of the ₹1,50,000 limit.
+- **Break-even by binary search.** Old-regime tax only falls as deductions rise, so `oldRegimeBreakEven()` searches for the smallest total deduction whose old-regime tax is at or below the new regime's. Example: on ₹9 lakh the new regime's tax is ₹0, so the old regime needs taxable income ≤ ₹5 lakh — ₹9,00,000 − ₹50,000 − D ≤ ₹5,00,000 → D = ₹3,50,000.
+- **Live without flooding the server.** The frontend waits 200 ms for a slider to settle, cancels any request still in flight (`AbortController`), and keeps the previous result on screen (dimmed) while the new one loads. The endpoint has its own rate limit (240 a minute) so slider use never eats into the decode allowance.
+- **Slider detail:** a range input can't reach a maximum that isn't a multiple of its step (₹96,000 of 80C left, in ₹5,000 steps, stopped at ₹95,000). The slider counts notches instead, with the last notch landing exactly on the limit.
+
+### 13.3 Testing
+`tests/simulator.test.js` (10 tests): break-even values worked by hand for ₹9 lakh and ₹18 lakh; the sample payslip alone (new ₹0 vs old ₹74,069); rent unlocking a ₹1,80,000 HRA exemption (old ₹36,629, hand-worked); PF capping extra 80C at ₹96,000; enough deductions making both regimes ₹0; no HRA without HRA on the payslip; and the API's validation. Checked in the browser at 375, 1440 and 1920 px; at ₹15 lakh with the sliders up, the old regime wins (₹84,261 vs ₹97,500, both hand-checked).
+
+### 13.4 Limitations
+- Only the deductions a typical employee can change are modelled — not 80E (education loan), 80G (donations), 80TTA (savings interest) or let-out property.
+- The 80D slider tops out at ₹75,000 (₹25,000 family + ₹50,000 senior parents); a senior-citizen employee can claim up to ₹1,00,000.
+- Without HRA on the payslip, rent gives no benefit here; section 80GG (rent with no HRA) is not modelled.
 
 ---
 

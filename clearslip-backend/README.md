@@ -65,7 +65,7 @@ Should return `{"status":"ok",...}`
 ```bash
 npm test
 ```
-177 tests: parser, tax calculator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+187 tests: parser, tax calculator, what-if simulator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
 
 ---
 
@@ -107,6 +107,15 @@ Answers a question with retrieval-augmented generation (see the project document
 **Request body:** `{ "question": "Which regime is better for me?", "payslip": { "summary": {…}, "breakdown": […] }, "history": [{ "role": "user", "content": "…" }] }` — `payslip` and `history` are optional.
 
 **Response `data`:** `mode` (`rag` | `retrieval-only` | `no-sources`), `notice` (why AI was unavailable, in `retrieval-only` mode — rate limit, expired key, retired model), `answer` (with `[n]` citations), `sources` (`n`, `title`, `section`, `reference`, `source`, `text`), `cited` (numbers used), `toolCalls` (`name`, `args`, `result`), `retrievalMethod` (`hybrid` | `bm25`).
+
+---
+
+### POST /api/tax/simulate
+The what-if simulator: both regimes' tax for a salary plus the deductions the user is trying out. No AI; rate limit 240 a minute.
+
+**Request body** (annual rupees except `rentPaidMonthly`; only `grossAnnual` is required): `{ "grossAnnual": 900000, "basicAnnual": 450000, "daAnnual": 0, "hraReceivedAnnual": 180000, "employeePfAnnual": 54000, "professionalTaxAnnual": 2400, "extra80C": 50000, "nps80CCD1B": 0, "health80D": 25000, "rentPaidMonthly": 20000, "metro": false, "homeLoanInterest": 0 }`
+
+**Response `data`:** `newRegime` and `oldRegime` (taxable income, slab tax, rebate, marginal relief, cess, `totalTax`, `monthlyTax`, `deductions`), `better` (`new` | `old` | `same`), `annualSaving`, `hra` (exemption and its three limits, or `null`), `section80C` (`fromPf`, `extra`, `cap`), `breakEven` (`currentDeductions`, `deductionsNeeded`, `shortfall`).
 
 ---
 

@@ -20,7 +20,7 @@ cd clearslip-frontend-final/clearslip && npm install && npm run dev
 
 Open http://localhost:5173. The backend defaults to port 4000. If that port is taken, set `PORT` in `clearslip-backend/.env` and point `VITE_API_URL` in the frontend `.env` at it.
 
-Run the tests (177, Jest + Supertest):
+Run the tests (187, Jest + Supertest):
 
 ```bash
 cd clearslip-backend && npm test
