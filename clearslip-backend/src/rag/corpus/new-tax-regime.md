@@ -1,5 +1,5 @@
 ---
-title: New tax regime (FY 2025-26)
+title: New tax regime (FY 2025-26 and tax year 2026-27)
 source: https://www.indiabudget.gov.in
 reference: Section 115BAC, Income-tax Act 1961, as amended by the Finance Act 2025
 ---
@@ -7,8 +7,8 @@ reference: Section 115BAC, Income-tax Act 1961, as amended by the Finance Act 20
 ## Who uses the new regime
 The new tax regime under section 115BAC is the default regime for individuals from FY 2023-24 onwards. If a salaried employee does not tell their employer which regime they want, the employer deducts TDS using the new regime. A salaried person with no business income can still choose the old regime each year when filing the income tax return.
 
-## Tax slabs for FY 2025-26
-Under the new regime for FY 2025-26 (assessment year 2026-27), income tax is charged in slabs: up to ₹4,00,000 nil; ₹4,00,001 to ₹8,00,000 at 5%; ₹8,00,001 to ₹12,00,000 at 10%; ₹12,00,001 to ₹16,00,000 at 15%; ₹16,00,001 to ₹20,00,000 at 20%; ₹20,00,001 to ₹24,00,000 at 25%; and above ₹24,00,000 at 30%. These slabs were introduced by the Finance Act 2025.
+## Tax slabs for FY 2025-26 and 2026-27
+Under the new regime for FY 2025-26 (assessment year 2026-27) and 2026-27 (the same rates apply after Budget 2026), income tax is charged in slabs: up to ₹4,00,000 nil; ₹4,00,001 to ₹8,00,000 at 5%; ₹8,00,001 to ₹12,00,000 at 10%; ₹12,00,001 to ₹16,00,000 at 15%; ₹16,00,001 to ₹20,00,000 at 20%; ₹20,00,001 to ₹24,00,000 at 25%; and above ₹24,00,000 at 30%. These slabs were introduced by the Finance Act 2025.
 
 ## Standard deduction
 Salaried employees get a flat standard deduction of ₹75,000 from salary income under the new regime. It is given automatically; no proof or investment is needed. Pensioners get the same deduction.

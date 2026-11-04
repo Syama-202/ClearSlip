@@ -27,6 +27,24 @@ const SYNONYMS = [
   ['rent', 'hra'],
   ['regime', 'slab'],
   ['refund', 'excess tds'],
+  // Everyday words for the same things ("my flat", "my mum and dad")
+  ['flat', 'rent hra'],
+  ['apartment', 'rent hra'],
+  ['accommodation', 'rent hra'],
+  ['landlord', 'rent'],
+  ['medical', 'health insurance'],
+  ['mum', 'parents'],
+  ['mom', 'parents'],
+  ['dad', 'parents'],
+  ['retire', 'retirement provident fund pension'],
+  // Common Hinglish words
+  ['katega', 'deducted'],
+  ['kat', 'deducted'],
+  ['kata', 'deducted'],
+  ['zyada', 'excess high'],
+  ['naya', 'new'],
+  ['purana', 'old'],
+  ['tankhwah', 'salary'],
 ]
 const SYNONYM_MAP = new Map(SYNONYMS.map(([k, v]) => [k, v.split(' ')]))
 

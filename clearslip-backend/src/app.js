@@ -3,6 +3,7 @@ import helmet from 'helmet'
 import { config } from './config/index.js'
 import { corsMiddleware } from './middleware/cors.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
+import { requestLog } from './middleware/requestLog.js'
 import decodeRouter from './routes/decode.js'
 import checklistRouter from './routes/checklist.js'
 import askRouter from './routes/ask.js'
@@ -15,19 +16,18 @@ const app = express()
 // the real client and rate limits apply per user, not to everyone at once
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
-// ── Security & parsing ──────────────────────────────────────────
+// ── Logging, security & parsing ─────────────────────────────────
+// First, so even requests refused below (CORS, body too large) get an ID and a log line
+app.use(requestLog)
 app.use(helmet())
 app.use(corsMiddleware)
-app.use(express.json({ limit: '10mb' }))   // 10mb for base64 payslip images
-app.use(express.urlencoded({ extended: true }))
-
-// Log every incoming request in dev
-if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-  app.use((req, _res, next) => {
-    console.log(`→ ${req.method} ${req.path}`)
-    next()
-  })
-}
+// Only decoding takes large bodies (a base64 image when it can't be read in the
+// browser). Everything else is small JSON, so a big body is refused straight
+// away instead of being parsed. The decode parser runs first; the general one
+// then skips bodies already parsed.
+app.use('/api/decode', express.json({ limit: '10mb' }))
+app.use(express.json({ limit: '100kb' }))
+app.use(express.urlencoded({ extended: true, limit: '100kb' }))
 
 // ── Routes ──────────────────────────────────────────────────────
 // Opening the API's address in a browser lands here — point people to the site
@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
     service: 'ClearSlip API',
     status: 'ok',
     message: `This is the ClearSlip backend. Open the website at ${config.frontendUrl}`,
-    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/ask', 'POST /api/tax/simulate', 'POST /api/checklist'],
+    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/decode/recalculate', 'POST /api/ask', 'POST /api/tax/simulate', 'POST /api/checklist'],
   })
 })
 app.use('/api/health', healthRouter)
