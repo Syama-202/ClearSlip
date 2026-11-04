@@ -15,7 +15,7 @@ export default function ActionCard({ actionItems, onSendEmail, emailSending }) {
         </h2>
         {/* No handler when the server can't send email */}
         {onSendEmail && (
-          <button
+          <button data-print="hide"
             onClick={onSendEmail}
             disabled={emailSending}
             className="flex items-center gap-2 rounded-lg bg-saffron-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-saffron-600 disabled:cursor-not-allowed disabled:bg-stone-300"
@@ -36,7 +36,7 @@ export default function ActionCard({ actionItems, onSendEmail, emailSending }) {
               <div className="flex-1">
                 <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${ps.className}`}>{ps.label}</span>
                 <p className="mt-1 text-base leading-relaxed text-ink">{item.action}</p>
-                {item.link && (
+                {/^https:\/\//.test(item.link ?? '') && (
                   <a href={item.link} target="_blank" rel="noopener noreferrer"
                     className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-saffron-600 hover:text-saffron-700 hover:underline">
                     Open official portal <ExternalLink size={14} />

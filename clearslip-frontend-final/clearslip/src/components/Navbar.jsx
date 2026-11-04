@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
-export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, showGovtDocs }) {
+export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <nav className="sticky top-0 z-50 bg-saffron-500 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-saffron-500 shadow-sm print:hidden">
       <div className="relative mx-auto flex h-16 max-w-screen-2xl items-center px-4 md:px-8">
         {/* Logo */}
         <button onClick={onHome} className="flex items-center gap-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
@@ -17,11 +17,6 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, sho
         <div className="ml-10 hidden gap-1 md:flex">
           <TabBtn active={activeTab === 'payslip'} onClick={() => setActiveTab('payslip')}>Payslip Decoder</TabBtn>
           <TabBtn active={activeTab === 'ask'} onClick={() => setActiveTab('ask')}>Ask ClearSlip</TabBtn>
-          {showGovtDocs && (
-            <TabBtn active={activeTab === 'govtdocs'} onClick={() => setActiveTab('govtdocs')}>
-              Govt Docs <span className="ml-1.5 rounded bg-white/25 px-1.5 py-0.5 text-xs">Beta</span>
-            </TabBtn>
-          )}
         </div>
 
         {/* Desktop right link */}
@@ -45,9 +40,6 @@ export default function Navbar({ activeTab, setActiveTab, onPrivacy, onHome, sho
           <div className="absolute left-0 right-0 top-16 flex flex-col gap-1 bg-saffron-600 px-4 py-3 shadow-lg md:hidden">
             <MobileTab active={activeTab === 'payslip'} onClick={() => { setActiveTab('payslip'); setMenuOpen(false) }}>Payslip Decoder</MobileTab>
             <MobileTab active={activeTab === 'ask'} onClick={() => { setActiveTab('ask'); setMenuOpen(false) }}>Ask ClearSlip</MobileTab>
-            {showGovtDocs && (
-              <MobileTab active={activeTab === 'govtdocs'} onClick={() => { setActiveTab('govtdocs'); setMenuOpen(false) }}>Govt Docs (Beta)</MobileTab>
-            )}
             <hr className="my-1.5 border-white/20" />
             <MobileTab active={false} onClick={() => { onPrivacy(); setMenuOpen(false) }}>Privacy Policy</MobileTab>
           </div>

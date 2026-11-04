@@ -1,10 +1,12 @@
-export function buildClaudeMessage(mode, textInput, imageData) {
+export function buildDecodeMessages(mode, textInput, imageData) {
   switch (mode) {
+    // Sent as typed: the parser reads it directly, and each figure's "Read from"
+    // line then quotes the payslip, not an instruction
     case 'text':
       return [
         {
           type: 'text',
-          text: `Please decode this payslip: ${textInput}`,
+          text: textInput,
         },
       ]
 

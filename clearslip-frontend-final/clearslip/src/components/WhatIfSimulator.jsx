@@ -51,7 +51,7 @@ export default function WhatIfSimulator({ breakdown }) {
           <h2 className="flex items-center gap-2 text-lg font-semibold text-terra">
             <SlidersHorizontal size={20} className="text-saffron-500" /> What if…?
           </h2>
-          <p className="mt-1 text-base text-muted">Try investments, insurance and rent, and watch your tax change under both regimes.</p>
+          <p className="mt-1 text-base text-muted">Try investments, insurance and rent, and watch your tax change under both regimes (2026-27 tax rules).</p>
         </div>
         {changed && (
           <button
@@ -216,6 +216,12 @@ function SimulationResult({ result, updating }) {
           ? 'Both regimes cost you the same.'
           : `The ${better} regime saves you ${formatINR(annualSaving)} a year (${formatINR(annualSaving / 12)} a month).`}
       </p>
+
+      {newRegime.surchargeNotModelled && (
+        <p role="note" className="rounded-xl border border-bad/30 bg-maroon-light px-4 py-3 text-sm font-medium text-maroon">
+          Income above ₹50 lakh also pays a surcharge (10% or more of the tax), which these figures leave out, so your real tax is higher.
+        </p>
+      )}
 
       <BreakEven {...breakEven} />
 

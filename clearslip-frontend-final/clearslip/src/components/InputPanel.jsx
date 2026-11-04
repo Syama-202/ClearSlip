@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ClipboardType, Camera, MessageSquareText, ArrowRight, Loader2, Sparkles } from 'lucide-react'
 import ImageUpload from './ImageUpload.jsx'
 
@@ -19,7 +19,7 @@ const MODES = [
 const textareaClass =
   'h-44 w-full resize-none rounded-xl border border-line bg-white p-4 text-base leading-relaxed text-ink placeholder:text-subtle focus:border-saffron-500 focus:outline-none focus:ring-4 focus:ring-saffron-100'
 
-export default function InputPanel({ onSubmit, loading, aiAvailable, sample }) {
+export default function InputPanel({ onSubmit, loading, aiAvailable, sample, pasteRequest }) {
   const [mode, setMode] = useState('text')
   const [textInput, setTextInput] = useState('')
   const [descInput, setDescInput] = useState('')
@@ -34,6 +34,14 @@ export default function InputPanel({ onSubmit, loading, aiAvailable, sample }) {
       setTextInput(sample.text)
     }
   }, [sample])
+
+  // "Paste the lines instead" (after a failed decode): switch to Paste and put the cursor there
+  const textareaRef = useRef(null)
+  useEffect(() => {
+    if (!pasteRequest) return
+    setMode('text')
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }, [pasteRequest])
 
   function handleSubmit() {
     if (mode === 'text' && !textInput.trim()) return
@@ -78,6 +86,7 @@ export default function InputPanel({ onSubmit, loading, aiAvailable, sample }) {
       <div className="mt-4">
         {mode === 'text' && (
           <textarea
+            ref={textareaRef}
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             aria-label="Payslip text"

@@ -73,7 +73,7 @@ export default function ImageUpload({ onImageReady }) {
         <span className="text-sm text-muted">or click to browse · JPEG, PNG, PDF up to 5 MB</span>
       </button>
       {error && <div className="mt-2 text-sm text-bad">{error}</div>}
-      <p className="mt-2 text-sm text-muted">Tip: bright light, the full page in view and no blur give the best results.</p>
+      <p className="mt-2 text-sm text-muted">Your file is read on this device and never uploaded. Scanned PDFs work too. Tip: bright light, the full page in view and no blur give the best results.</p>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
         className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
     </div>

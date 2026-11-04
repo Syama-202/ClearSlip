@@ -19,7 +19,8 @@ export async function preprocessImage(file) {
       const dataUrl = reader.result
       const base64 = dataUrl.split(',')[1]
       const mediaType = file.type === 'image/jpg' ? 'image/jpeg' : file.type
-      resolve({ base64, mediaType, fileName: file.name, fileSize: file.size })
+      // ile is read in the browser; base64 is only used if that isn't possible
+      resolve({ base64, mediaType, fileName: file.name, fileSize: file.size, file })
     }
     reader.onerror = () => reject(new Error('Failed to read file. Please try again.'))
     reader.readAsDataURL(file)

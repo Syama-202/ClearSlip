@@ -1,11 +1,11 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+import { API_BASE } from './api.js'
 
-export async function sendChecklist({ email, userName, checklistItems, payslipSummary }) {
+export async function sendChecklist({ email, userName, checklistItems, payslipSummary, checklistToken }) {
   const response = await fetch(`${API_BASE}/api/checklist`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, userName, checklistItems, payslipSummary }),
+    body: JSON.stringify({ email, userName, checklistItems, payslipSummary, checklistToken }),
   })
 
   const json = await response.json()
