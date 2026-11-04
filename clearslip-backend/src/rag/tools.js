@@ -18,7 +18,7 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'compare_tax_regimes',
-      description: 'Calculate FY 2025-26 income tax under both the new and old regime for a salaried person and say which is lower. Use for any "which regime" or "how much tax" question.',
+      description: 'Calculate income tax for tax year 2026-27 (same rates as FY 2025-26) under both the new and old regime for a salaried person and say which is lower. Use for any "which regime" or "how much tax" question.',
       parameters: {
         type: 'object',
         properties: {
@@ -33,7 +33,7 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'calculate_tax',
-      description: 'Calculate FY 2025-26 income tax under one regime, with a breakdown (standard deduction, taxable income, rebate, cess).',
+      description: 'Calculate income tax for tax year 2026-27 (same rates as FY 2025-26) under one regime, with a breakdown (standard deduction, taxable income, rebate, cess).',
       parameters: {
         type: 'object',
         properties: {
@@ -87,7 +87,8 @@ function taxDisplay(t) {
   if (t.rebate87A) steps.push(`minus rebate 87A ${inr(t.rebate87A)}`)
   if (t.marginalRelief) steps.push(`minus marginal relief ${inr(t.marginalRelief)}`)
   steps.push(`plus 4% cess ${inr(t.cess)}`)
-  return `${t.regime === 'old' ? 'Old' : 'New'} regime: total tax ${inr(t.totalTax)} a year (${inr(t.monthlyTax)} a month). Taxable income ${inr(t.taxableIncome)} after standard deduction ${inr(t.standardDeduction)}; ${steps.join(', ')} = ${inr(t.totalTax)}.`
+  const surcharge = t.surchargeNotModelled ? ' This excludes the surcharge on income above ₹50 lakh, so the actual tax is higher.' : ''
+  return `${t.regime === 'old' ? 'Old' : 'New'} regime: total tax ${inr(t.totalTax)} a year (${inr(t.monthlyTax)} a month). Taxable income ${inr(t.taxableIncome)} after standard deduction ${inr(t.standardDeduction)}; ${steps.join(', ')} = ${inr(t.totalTax)}.${surcharge}`
 }
 
 /** Runs a tool the model asked for. Errors are returned as data so the model can recover. */

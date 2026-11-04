@@ -29,8 +29,8 @@ export async function forwardToN8n(payload) {
     if (!response.ok) {
       const body = await response.text().catch(() => '')
       throw Object.assign(
-        new Error(body || `n8n responded with ${response.status}`),
-        { status: 502, code: 'N8N_ERROR' }
+        new Error('The checklist email could not be sent. Please try again later.'),
+        { status: 502, code: 'N8N_ERROR', detail: `n8n ${response.status}: ${body.slice(0, 300)}` }
       )
     }
 
