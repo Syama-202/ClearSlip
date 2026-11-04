@@ -151,7 +151,7 @@ function AssistantMessage({ message, idPrefix }) {
     )
   }
 
-  const { mode, answer, sources, cited, toolCalls } = message.data
+  const { mode, answer, sources, cited, toolCalls, notice } = message.data
   // Show the passages the answer cites; in sources-only mode, show the passages themselves
   const shownSources = mode === 'rag' ? sources.filter(s => cited.includes(s.n)) : sources
 
@@ -159,7 +159,7 @@ function AssistantMessage({ message, idPrefix }) {
     <div className="rounded-2xl rounded-bl-md border border-line bg-cream p-4 md:p-5">
       {mode === 'retrieval-only' && (
         <p className="mb-3 text-base text-muted">
-          AI answers are switched off on this server, so here are the most relevant passages from the tax rules:
+          {notice ?? 'AI answers are switched off on this server, so here are the most relevant passages from the tax rules:'}
         </p>
       )}
 

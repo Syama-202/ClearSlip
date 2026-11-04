@@ -157,6 +157,20 @@ describe('POST /api/decode', () => {
       expect(res.status).toBe(502)
       expect(res.body.code).toBe('PARSE_ERROR')
     })
+
+    test('treats an expired AI key like no key: the friendly "paste your lines" message', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"error":{"code":"invalid_api_key"}}', { status: 401 }))
+      const res = await request(app).post('/api/decode').send(textBody('My CTC is 8L but take-home is only 52k'))
+      expect(res.status).toBe(422)
+      expect(res.body.code).toBe('LOW_CONFIDENCE_NO_FALLBACK')
+    })
+
+    test('asks the user to retry when the AI rate limit is hit', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"error":{"message":"Rate limit reached"}}', { status: 429 }))
+      const res = await request(app).post('/api/decode').send(textBody('My CTC is 8L but take-home is only 52k'))
+      expect(res.status).toBe(503)
+      expect(res.body.error).toMatch(/wait a minute/)
+    })
   })
 })
 

@@ -27,20 +27,33 @@ function Inline({ text, sources, idPrefix }) {
   })
 }
 
+const LIST_ITEM_RE = /^([-*•]|\d+[.)])\s+/
+
+// Splits a block into runs of plain lines and list lines, so a heading line
+// followed by a list ("**Next steps**\n1. …\n2. …") renders as both
+function segments(block) {
+  const runs = []
+  for (const line of block.split('\n').map(l => l.trim()).filter(Boolean)) {
+    const isList = LIST_ITEM_RE.test(line)
+    const last = runs[runs.length - 1]
+    if (last && last.isList === isList) last.lines.push(line)
+    else runs.push({ isList, lines: [line] })
+  }
+  return runs
+}
+
 // idPrefix keeps source anchors unique when several answers are on the page
 export default function AnswerText({ text, sources = [], idPrefix = 'answer' }) {
-  const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean)
+  const runs = text.split(/\n\s*\n/).flatMap(segments)
   return (
     <div className="space-y-3 text-base leading-relaxed text-ink">
-      {blocks.map((block, i) => {
-        const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
-        const isList = lines.every(l => /^([-*•]|\d+[.)])\s+/.test(l))
+      {runs.map(({ isList, lines }, i) => {
         if (isList) {
           const ordered = /^\d/.test(lines[0])
           const ListTag = ordered ? 'ol' : 'ul'
           return (
             <ListTag key={i} className={`space-y-1.5 pl-5 ${ordered ? 'list-decimal' : 'list-disc'}`}>
-              {lines.map((l, j) => <li key={j}><Inline text={l.replace(/^([-*•]|\d+[.)])\s+/, '')} sources={sources} idPrefix={idPrefix} /></li>)}
+              {lines.map((l, j) => <li key={j}><Inline text={l.replace(LIST_ITEM_RE, '')} sources={sources} idPrefix={idPrefix} /></li>)}
             </ListTag>
           )
         }

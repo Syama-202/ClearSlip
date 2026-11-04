@@ -78,23 +78,54 @@ function deductionsFrom(args) {
   }
 }
 
+const inr = n => `₹${Math.round(n).toLocaleString('en-IN')}`
+
+// A ready-written sentence with every amount in Indian format. The model copies it
+// rather than converting raw numbers itself (it once turned 26000 into "₹2.6 lakh").
+function taxDisplay(t) {
+  const steps = [`slab tax ${inr(t.taxBeforeRebate)}`]
+  if (t.rebate87A) steps.push(`minus rebate 87A ${inr(t.rebate87A)}`)
+  if (t.marginalRelief) steps.push(`minus marginal relief ${inr(t.marginalRelief)}`)
+  steps.push(`plus 4% cess ${inr(t.cess)}`)
+  return `${t.regime === 'old' ? 'Old' : 'New'} regime: total tax ${inr(t.totalTax)} a year (${inr(t.monthlyTax)} a month). Taxable income ${inr(t.taxableIncome)} after standard deduction ${inr(t.standardDeduction)}; ${steps.join(', ')} = ${inr(t.totalTax)}.`
+}
+
 /** Runs a tool the model asked for. Errors are returned as data so the model can recover. */
 export function executeTool(name, args = {}) {
   switch (name) {
-    case 'compare_tax_regimes':
-      return compareRegimes(args.annual_gross_salary, deductionsFrom(args))
-    case 'calculate_tax':
-      return args.regime === 'old'
+    case 'compare_tax_regimes': {
+      const result = compareRegimes(args.annual_gross_salary, deductionsFrom(args))
+      const lower = result.better === 'same'
+        ? 'Both regimes give the same tax.'
+        : `The ${result.better} regime is lower by ${inr(result.annualSaving)} a year.`
+      return { ...result, display: `${taxDisplay(result.newRegime)} ${taxDisplay(result.oldRegime)} ${lower}` }
+    }
+    case 'calculate_tax': {
+      const result = args.regime === 'old'
         ? oldRegimeTax(args.annual_gross_salary, deductionsFrom(args))
         : newRegimeTax(args.annual_gross_salary, deductionsFrom(args))
-    case 'calculate_hra_exemption':
-      return hraExemption({
+      return { ...result, display: taxDisplay(result) }
+    }
+    case 'calculate_hra_exemption': {
+      const result = hraExemption({
         basicAnnual: args.basic_annual,
         daAnnual: args.da_annual,
         hraReceivedAnnual: args.hra_received_annual,
         rentPaidAnnual: args.rent_paid_annual,
         city: args.city,
       })
+      // The three limits spelled out, so the model restates the rule the calculator
+      // applied (e.g. 40% for a non-metro city) instead of recalling its own version
+      return {
+        ...result,
+        display: `HRA exemption ${inr(result.exemption)} a year; taxable HRA ${inr(result.taxableHra)} a year.`,
+        limitsExplained: {
+          'Actual HRA received': result.limits.actualHraReceived,
+          'Rent paid minus 10% of basic + DA': result.limits.rentMinus10PercentOfSalary,
+          [result.metro ? '50% of basic + DA (metro city)' : '40% of basic + DA (non-metro city)']: result.limits.percentOfSalary,
+        },
+      }
+    }
     default:
       return { error: `Unknown tool: ${name}` }
   }

@@ -66,7 +66,7 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | Decode pipeline wired end to end (OCR → rules → fallback) | `src/controllers/decodeController.js` | ✅ Done — response includes `engine: "rules" \| "llm-fallback"` |
 | Tax slabs updated to Budget 2025 (FY 2025-26) + 4% cess + 87A marginal relief | `src/services/rulesEngine.js`, `src/prompts/fallbackPrompt.js` | ✅ Done |
 | Parser handles real layouts: two-column lines, YTD columns, `k`/`L`/`Cr` units, PF No/UAN/employer lines ignored | `src/services/rulesEngine.js` | ✅ Done — see §4.1–4.2 |
-| Jest + Supertest test suite (166 tests) | `tests/` | ✅ Done — see §9 |
+| Jest + Supertest test suite (177 tests) | `tests/` | ✅ Done — see §9 |
 | Tested against 6 real-world payslip formats from Indian HR websites (text + OCR) | `tests/webSamples.test.js` | ✅ Done — 6/6, see §9.1 |
 | Demo-readiness: dead "Sign in"/"Get started" buttons removed; unfinished Govt Docs tab hidden (`SHOW_GOVT_DOCS` in `App.jsx`) | `Navbar.jsx`, `App.jsx` | ✅ Done |
 | UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
@@ -189,7 +189,7 @@ Route to LLM fallback (or return a clear error if no fallback is configured) whe
 | 1 | JWT auth + user model + decode-history persistence (DB) | Turns the project from a stateless API demo into a real application |
 | 2 | ~~Old vs New tax regime comparator~~ ✅ done as a calculator + Ask ClearSlip tool (§12) | Most-requested real-world feature; reuses existing engine |
 | 2 | History/trend dashboard (Recharts: take-home & tax over time) | Demonstrates data visualization + persistence together |
-| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (166 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
+| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (177 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
 | 3 | ~~Bug fixing against edge cases (unusual formats)~~ ✅ two-column/YTD/units done — test with more real payslip photos | Real debugging, not just feature-adding |
 | 4 | Deployment (Railway/Render, backend + frontend) | Required for a working demo/viva |
 | 4 | UI polish pass | Presentation quality |
@@ -326,7 +326,7 @@ The original `payslipDecoder.js` prompt (used with Claude's vision API) has been
 
 ---
 
-## 9. Testing (done — 166 automated tests, all passing)
+## 9. Testing (done — 177 automated tests, all passing)
 
 Run with `npm test` in `clearslip-backend` (Jest + Supertest).
 
@@ -392,7 +392,7 @@ question (+ decoded payslip, + last turns)
  GROQ_API_KEY set? ──no──► return the passages with sources ("sources only" mode)
         │yes
         ▼
- Llama 3.3 70B (Groq) with numbered SOURCES + payslip + 3 tools
+ gpt-oss-120b (Groq) with numbered SOURCES + payslip + 3 tools
         │   ├─ compare_tax_regimes ─┐
         │   ├─ calculate_tax        ├─► src/services/taxCalculator.js (deterministic, unit-tested)
         │   └─ calculate_hra_exemption ┘
@@ -402,7 +402,7 @@ question (+ decoded payslip, + last turns)
 
 | Part | File |
 |---|---|
-| Knowledge base — 16 documents, 73 sections, ~3,950 words | `src/rag/corpus/*.md` |
+| Knowledge base — 16 documents, 75 sections, ~3,900 words | `src/rag/corpus/*.md` |
 | Chunking (one chunk per section) + corpus hash | `src/rag/corpus.js` |
 | BM25 keyword search with payslip synonyms | `src/rag/bm25.js` |
 | Local embeddings (`Xenova/bge-small-en-v1.5`, 384-d, free) | `src/rag/embeddings.js` |
@@ -419,28 +419,54 @@ question (+ decoded payslip, + last turns)
 - **Why hybrid retrieval?** BM25 is exact on section numbers and terms ("80CCD(1B)", "Form 16"); embeddings match meaning when the words differ ("Why is 12% of my basic cut every month?" → EPF). Reciprocal Rank Fusion (score = Σ 1/(60 + rank)) combines them without having to calibrate their very different score scales.
 - **Why one chunk per section?** Each section is short and self-contained, so a citation points at exactly the passage that supports the sentence.
 - **Why tools for numbers?** LLMs make arithmetic mistakes. The model only decides *which* calculation to run and with which inputs; the tested calculator produces the number, and the UI shows the tool's result next to the answer so it can be checked.
-- **Guardrails:** refuse when retrieval finds nothing relevant (no LLM call); the prompt allows only cited sources and tool results; PAN/Aadhaar in a question is rejected; malformed tool calls from the model are retried once without tools; at most 3 tool rounds.
+- **Guardrails:** refuse when retrieval finds nothing relevant (no LLM call); the prompt allows only cited sources and tool results; PAN/Aadhaar in a question is rejected; a malformed tool call is retried once, then answered without tools; at most 3 tool rounds.
+- **Where are the vectors stored? (no separate vector database)** The 75 passage embeddings (384 numbers each, ~240 KB) are precomputed into `src/rag/index.json` and loaded into memory at start-up; a query is compared with all 75 by dot product (exact nearest-neighbour search) in well under a millisecond. A vector database such as FAISS, Chroma, pgvector or Pinecone adds approximate indexes (HNSW, IVF) that pay off from roughly 100,000 vectors; at 75 they would add a service to run and deploy without making retrieval faster or more accurate. `KnowledgeBase.retrieve()` is the single place to swap one in if the corpus grows.
+- **Deterministic routing for "which regime?":** with a payslip attached, the first model turn is required to call `compare_tax_regimes` (`tool_choice`), because in live testing the model sometimes asked for rent instead of comparing with the figures it already had.
+- **Numbers the model can copy, not convert:** every tool result carries a `display` sentence with amounts in Indian format and the calculation steps (e.g. "slab tax ₹63,750, minus marginal relief ₹38,750, plus 4% cess ₹1,000 = ₹26,000"); in live testing the model had turned 26000 into "₹2.6 lakh" and called the marginal-relief amount the tax.
+- **Degrades instead of failing:** if Groq rate-limits the request (free tier: 8,000 tokens a minute), the key is invalid or expired, or the model is retired, the answer falls back to "sources only" with a notice saying why; the payslip decoder's LLM fallback likewise falls back to the "paste your payslip lines" message.
 - **Works without an API key:** in "sources only" mode the same retrieval returns the matching passages, so the feature can be demonstrated offline.
 - **Free to run:** embeddings are computed locally with transformers.js; generation uses Groq's free tier.
 
 ### 12.4 Evaluation (`npm run rag:eval`)
-35 questions written the way a first-time employee asks them, each labelled with the document that answers it (`tests/fixtures/ragEval.js`), plus 4 off-topic questions.
+37 questions written the way a first-time employee asks them, each labelled with the document that answers it (`tests/fixtures/ragEval.js`), plus 4 off-topic questions.
 
 | Retrieval method | Hit@1 | Hit@3 | MRR |
 |---|---|---|---|
-| BM25 only | 94.3% | 100.0% | 0.962 |
-| Dense (embeddings) only | 91.4% | 97.1% | 0.949 |
-| **Hybrid (BM25 + dense, RRF)** | **97.1%** | 97.1% | **0.979** |
+| BM25 only | 94.6% | 100.0% | 0.964 |
+| Dense (embeddings) only | 91.9% | 97.3% | 0.951 |
+| **Hybrid (BM25 + dense, RRF)** | **97.3%** | 97.3% | **0.980** |
 
-- **Relevance guard:** 4/4 off-topic questions refused, 35/35 on-topic questions answered. Thresholds were set from this data (off-topic questions top out at BM25 ≈ 4.0 / cosine ≈ 0.49; on-topic start at ≈ 6.0 / 0.60), with the cut-off between them (BM25 5, cosine 0.55).
-- **Automated tests:** `tests/rag.test.js` (chunking, tokenizer, every evaluation question in BM25's top 3, guard, RRF, citations, the API in all three modes, and the full tool-calling loop with Groq mocked) and `tests/regimes.test.js` (calculators, hand-worked values). Total suite: 166 tests.
-- **Honest caveats:** the questions were written alongside the knowledge base, so these scores are likely optimistic — adding questions from real users would make the evaluation stronger. Answer quality with the live model (faithfulness to sources) was not measured, because no Groq key was available during development; the tool-calling flow is tested with a mocked model.
+- **Relevance guard:** 4/4 off-topic questions refused, 37/37 on-topic questions answered. Thresholds were set from this data (off-topic questions top out at BM25 ≈ 4.0 / cosine ≈ 0.49; on-topic start at ≈ 6.0 / 0.60), with the cut-off between them (BM25 5, cosine 0.55).
+- **Automated tests:** `tests/rag.test.js` (chunking, tokenizer, every evaluation question in BM25's top 3, guard, RRF, citations, the API in all three modes, and the full tool-calling loop with Groq mocked) and `tests/regimes.test.js` (calculators, hand-worked values). The rate-limit / expired-key fallbacks, forced regime comparison, tool-call retry and citation clean-up are tested with Groq mocked. Total suite: 177 tests.
+- **Honest caveats:** the questions were written alongside the knowledge base, so these scores are likely optimistic — adding questions from real users would make the evaluation stronger. The live answer check below is a small manual review (6 questions), not a large-scale faithfulness benchmark.
+
+#### Live answer check (Groq `openai/gpt-oss-120b`, 2 Nov 2026)
+Six questions were asked against the running server with the sample payslip (₹75,000/month gross), and every number and claim was checked by hand against the calculator and the cited passage. The first run exposed four problems, each fixed and re-tested:
+
+| Problem found in the first live run | Fix |
+|---|---|
+| HRA answer said "50% (metro)" for Bengaluru although the calculator had correctly used 40% (non-metro) | Tool result labels each limit with the rule applied; prompt: report tool labels exactly |
+| EPF answer listed withdrawal rules that are not in the knowledge base | Prompt: answer only the parts the sources cover; added "Withdrawing PF" and "Tax on PF withdrawals" passages |
+| "Which regime is better?" asked for rent instead of comparing | Forced `compare_tax_regimes` call when a payslip is attached |
+| ₹26,000 reported as "₹2.6 lakh"; some answers had no citations; gpt-oss's native 【n】 citation style | `display` sentences in tool results; reasoning effort medium; 【n】 normalised to [n] |
+
+| Question | Final result |
+|---|---|
+| Which tax regime is better for me? (with payslip) | ✅ Compared: new ₹0 vs old ₹74,069 (hand-checked: taxable ₹7,93,600 → ₹71,220 + 4% cess); cited [1][2][4][5] |
+| ₹20,000 rent in Bengaluru — HRA exemption? | ✅ ₹1,80,000; limits ₹1,80,000 / ₹1,95,000 / ₹1,80,000 at 40% non-metro; cited [5] |
+| Why is 12% of basic cut, can I withdraw it? | ✅ EPF explained, withdrawal answer limited to the passage, points to EPFO; cited [1][2] |
+| Can I claim rent paid to my mother? | ✅ Matches the passage (parent owns the house, declares the income, PAN above ₹1 lakh); cited [1][2][3] |
+| Tax on ₹13 lakh, new regime? | ✅ ₹26,000 (marginal relief); cited [5][3] |
+| Biryani recipe (off-topic) | ✅ Refused by the relevance guard, no LLM call |
+
+Token use is about 2,000 per model call (≈4,000 for a question that calls a tool), so the free tier answers roughly two questions a minute; beyond that users get the sources-only fallback.
 
 ### 12.5 Limitations
 - The knowledge base is ClearSlip's own plain-language summary of the rules, each section citing its official source and legal reference — not the full text of the Act. It must be reviewed when rules change (e.g. each Budget), then re-indexed with `npm run rag:index` (a test fails if the index is stale).
 - Calculators ignore surcharge (income above ₹50 lakh) and flag it; senior-citizen slabs are not modelled.
 - State-specific professional-tax slabs are not covered in detail.
 - The embedding model (~35 MB) downloads on the first question after a deploy; set `RAG_DENSE=off` to use BM25 only on very small servers.
+- Groq's free tier allows about two AI answers a minute (8,000 tokens per minute); a paid tier or a smaller model (`GROQ_MODEL`) raises this. Groq retires models over time — Llama 3.3 70B, the original choice, was no longer available by November 2026 — so the model is configurable and an unavailable model degrades to sources-only answers.
 
 ---
 

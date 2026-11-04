@@ -24,6 +24,8 @@ export const EVAL_QUESTIONS = [
   { q: 'Why is 12% of my basic cut every month?', docs: ['epf'] },
   { q: 'How do I check my provident fund balance?', docs: ['epf'] },
   { q: 'What interest does EPF give?', docs: ['epf'] },
+  { q: 'Can I withdraw my PF money when I leave my job?', docs: ['epf'] },
+  { q: 'Is tax deducted if I take out my provident fund after 3 years?', docs: ['epf'] },
   { q: 'Who has to pay ESI?', docs: ['esi'] },
   { q: 'Why is ₹200 deducted as professional tax?', docs: ['professional-tax'] },
   { q: 'Is professional tax deductible in income tax?', docs: ['professional-tax'] },

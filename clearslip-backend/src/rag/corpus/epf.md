@@ -19,5 +19,11 @@ EPFO declares the EPF interest rate every year. For FY 2024-25 the rate was 8.25
 ## Tax treatment of PF
 Your own PF contribution qualifies for deduction under section 80C in the old regime. Interest on PF is tax-free, except interest on your own contributions above ₹2,50,000 a year, which is taxable. Withdrawals after five years of continuous service are generally tax-free.
 
+## Withdrawing PF
+PF is meant for retirement, so withdrawals are allowed only in the situations the EPF Scheme lists: full withdrawal (final settlement) on retirement or after leaving employment, and partial withdrawals (advances) while still working for needs such as illness, buying or building a house, education or marriage, each with its own service-length and amount limits. EPFO revised and simplified these conditions in 2025, so check the current rules on the EPFO member portal or the UMANG app before applying. Claims are made online with your UAN, which must be linked to your Aadhaar and bank account. When you change jobs, transfer your PF to the new employer instead of withdrawing it — this keeps your service continuous and your savings growing.
+
+## Tax on PF withdrawals
+A PF withdrawal is tax-free if you have at least five years of continuous service; service with earlier employers counts if the PF was transferred. A withdrawal before five years is taxable, and EPFO deducts TDS under section 192A at 10% if the amount is ₹50,000 or more and your PAN is on record. If your total income is below the taxable limit, you can submit Form 15G (or 15H if you are 60 or older) to avoid this TDS.
+
 ## Voluntary Provident Fund (VPF)
 You can ask your employer to deduct more than 12% as Voluntary Provident Fund (VPF). VPF earns the same interest as EPF and counts under 80C in the old regime, but the employer does not match it.

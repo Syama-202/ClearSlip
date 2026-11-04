@@ -10,7 +10,8 @@ const { config } = await import('../src/config/index.js')
 const { chunkDocument, loadCorpus, corpusHash } = await import('../src/rag/corpus.js')
 const { tokenize } = await import('../src/rag/bm25.js')
 const { getKnowledgeBase, fuse, INDEX_FILE } = await import('../src/rag/knowledgeBase.js')
-const { citedNumbers } = await import('../src/services/askService.js')
+const { citedNumbers, normalizeCitations } = await import('../src/services/askService.js')
+const { executeTool } = await import('../src/rag/tools.js')
 const { EVAL_QUESTIONS, OFF_TOPIC_QUESTIONS } = await import('./fixtures/ragEval.js')
 
 const ask = body => request(app).post('/api/ask').send(body)
@@ -140,7 +141,7 @@ describe('POST /api/ask', () => {
       // First request: grounded prompt with numbered sources, the payslip and the tools
       const first = JSON.parse(fetchSpy.mock.calls[0][1].body)
       expect(first.messages[0].content).toMatch(/SOURCES:\n\[1\]/)
-      expect(first.messages[0].content).toMatch(/Annual gross salary \(sum of earnings\): ₹900000/)
+      expect(first.messages[0].content).toMatch(/Annual gross salary \(sum of earnings\): ₹9,00,000/)
       expect(first.tools.map(t => t.function.name)).toContain('compare_tax_regimes')
 
       // Second request: the tool's exact result fed back to the model
@@ -150,14 +151,40 @@ describe('POST /api/ask', () => {
       expect(JSON.parse(toolMessage.content).better).toBe('new')
     })
 
-    test('retries without tools when the model sends a malformed tool call', async () => {
+    test('always runs the regime comparison first when a payslip is attached', async () => {
+      const fetchSpy = jest.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(groqReply({
+          content: null,
+          tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'compare_tax_regimes', arguments: '{"annual_gross_salary":900000}' } }],
+        }))
+        .mockResolvedValueOnce(groqReply({ content: 'The new regime is lower for you [1].' }))
+
+      await ask({ question: 'Which regime should I pick?', payslip })
+      expect(JSON.parse(fetchSpy.mock.calls[0][1].body).tool_choice).toEqual({ type: 'function', function: { name: 'compare_tax_regimes' } })
+      expect(JSON.parse(fetchSpy.mock.calls[1][1].body).tool_choice).toBe('auto')
+    })
+
+    test('retries with tools once when the model sends a malformed tool call', async () => {
       const fetchSpy = jest.spyOn(globalThis, 'fetch')
         .mockResolvedValueOnce(new Response('{"error":{"code":"tool_use_failed"}}', { status: 400 }))
         .mockResolvedValueOnce(groqReply({ content: 'Professional tax is capped at ₹2,500 a year [1].' }))
 
       const res = await ask({ question: 'What is the maximum professional tax?' })
       expect(res.body.data).toMatchObject({ mode: 'rag', cited: [1], toolCalls: [] })
-      expect(JSON.parse(fetchSpy.mock.calls[1][1].body).tools).toBeUndefined()
+      expect(JSON.parse(fetchSpy.mock.calls[1][1].body).tools).toBeDefined()
+    })
+
+    test('answers without tools after two malformed tool calls', async () => {
+      const toolUseFailed = () => new Response('{"error":{"code":"tool_use_failed"}}', { status: 400 })
+      const fetchSpy = jest.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce(toolUseFailed())
+        .mockResolvedValueOnce(toolUseFailed())
+        .mockResolvedValueOnce(groqReply({ content: 'Professional tax is capped at ₹2,500 a year [1].' }))
+
+      const res = await ask({ question: 'What is the maximum professional tax?' })
+      expect(res.body.data).toMatchObject({ mode: 'rag', cited: [1] })
+      expect(fetchSpy).toHaveBeenCalledTimes(3)
+      expect(JSON.parse(fetchSpy.mock.calls[2][1].body).tools).toBeUndefined()
     })
 
     test('passes recent turns along for follow-up questions', async () => {
@@ -173,6 +200,46 @@ describe('POST /api/ask', () => {
       })
       const body = JSON.parse(fetchSpy.mock.calls[0][1].body)
       expect(body.messages.slice(1).map(m => m.role)).toEqual(['user', 'assistant', 'user'])
+    })
+
+    test('falls back to the passages when the free-tier rate limit is hit', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('{"error":{"message":"Rate limit reached"}}', { status: 429 }))
+      const res = await ask({ question: 'What is the maximum professional tax?' })
+      expect(res.status).toBe(200)
+      expect(res.body.data).toMatchObject({ mode: 'retrieval-only', answer: null })
+      expect(res.body.data.notice).toMatch(/busy/)
+      expect(res.body.data.sources.length).toBeGreaterThan(0)
+    })
+
+    test('falls back to the passages when the key has expired', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('{"error":{"code":"invalid_api_key"}}', { status: 401 }))
+      const res = await ask({ question: 'What is the maximum professional tax?' })
+      expect(res.body.data.mode).toBe('retrieval-only')
+      expect(res.body.data.notice).toMatch(/expired/)
+    })
+
+    test('tax tools return amounts pre-formatted in Indian style for the model to copy', () => {
+      const result = executeTool('calculate_tax', { regime: 'new', annual_gross_salary: 1300000 })
+      expect(result.totalTax).toBe(26000)
+      expect(result.display).toBe('New regime: total tax ₹26,000 a year (₹2,167 a month). Taxable income ₹12,25,000 after standard deduction ₹75,000; slab tax ₹63,750, minus marginal relief ₹38,750, plus 4% cess ₹1,000 = ₹26,000.')
+    })
+
+    test("converts gpt-oss's native 【n】 citations to [n]", () => {
+      expect(normalizeCitations('Cess is 4%【2】 and relief applies【5†source】.')).toBe('Cess is 4%[2] and relief applies[5].')
+      expect(normalizeCitations('Old regime costs ₹74,069 [tool output]. Slabs differ [3].')).toBe('Old regime costs ₹74,069. Slabs differ [3].')
+      expect(normalizeCitations('New is better【functions.compare_tax_regimes】.')).toBe('New is better.')
+    })
+
+    test('labels the HRA limits with the rule the calculator applied', () => {
+      const result = executeTool('calculate_hra_exemption', {
+        basic_annual: 450000, hra_received_annual: 180000, rent_paid_annual: 240000, city: 'Bengaluru',
+      })
+      expect(result.exemption).toBe(180000)
+      expect(result.limitsExplained).toEqual({
+        'Actual HRA received': 180000,
+        'Rent paid minus 10% of basic + DA': 195000,
+        '40% of basic + DA (non-metro city)': 180000,
+      })
     })
   })
 })

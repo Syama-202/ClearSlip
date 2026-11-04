@@ -1,7 +1,11 @@
 import { config } from '../config/index.js'
 import { FALLBACK_SYSTEM_PROMPT } from '../prompts/fallbackPrompt.js'
+import { groqChat, GROQ_UNAVAILABLE_CODES } from './groqClient.js'
 
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+// Shown to end users, so no setup details here — server.js logs at
+// startup that GROQ_API_KEY is missing
+const CANT_DECODE_MESSAGE =
+  "We couldn't find enough payslip lines in this to decode it. Paste the earnings and deductions lines from your payslip (for example \"Basic 25,000, HRA 10,000, PF 3,000\"), or upload a clear photo of it."
 
 /**
  * Free-tier LLM fallback for payslip text the rule-based engine
@@ -9,57 +13,43 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
  * free tier, no cost) instead of the Claude API.
  *
  * Requires GROQ_API_KEY in .env — get one free at https://console.groq.com
- * If it's not configured, this throws a clear error rather than
- * silently failing, so the caller can decide how to handle it.
+ * Without a key, or when Groq is unavailable (expired key, retired model),
+ * this throws the same friendly 422 the rules engine's caller shows; a
+ * rate limit passes through as a "try again in a minute" 503.
  */
 export async function decodeWithFallback(rawText) {
-  if (!config.groqApiKey) {
-    // Shown to end users, so no setup details here — server.js logs at
-    // startup that GROQ_API_KEY is missing
-    const err = new Error(
-      'We couldn\'t find enough payslip lines in this to decode it. Paste the earnings and deductions lines from your payslip (for example "Basic 25,000, HRA 10,000, PF 3,000"), or upload a clear photo of it.'
-    )
-    err.status = 422
-    err.code = 'LOW_CONFIDENCE_NO_FALLBACK'
-    throw err
-  }
+  if (!config.groqApiKey) throw cantDecode()
 
-  const response = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.groqApiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.groqModel,
+  let message
+  try {
+    message = await groqChat({
       temperature: 0.2,
       max_tokens: 2000,
       messages: [
         { role: 'system', content: FALLBACK_SYSTEM_PROMPT },
         { role: 'user', content: `Here is the extracted payslip text:\n\n${rawText}` },
       ],
-    }),
-  })
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    const err = new Error(`Fallback AI request failed (${response.status}): ${body.slice(0, 200)}`)
-    err.status = 502
-    err.code = 'FALLBACK_LLM_ERROR'
+    })
+  } catch (err) {
+    if (GROQ_UNAVAILABLE_CODES.includes(err.code) && err.code !== 'GROQ_RATE_LIMITED') throw cantDecode()
     throw err
   }
 
-  const data = await response.json()
-  const rawContent = data?.choices?.[0]?.message?.content
-
-  if (!rawContent) {
+  if (!message.content) {
     const err = new Error('Empty response from fallback AI')
     err.status = 502
     err.code = 'FALLBACK_LLM_EMPTY'
     throw err
   }
 
-  return parseJSON(rawContent)
+  return parseJSON(message.content)
+}
+
+function cantDecode() {
+  const err = new Error(CANT_DECODE_MESSAGE)
+  err.status = 422
+  err.code = 'LOW_CONFIDENCE_NO_FALLBACK'
+  return err
 }
 
 function parseJSON(raw) {

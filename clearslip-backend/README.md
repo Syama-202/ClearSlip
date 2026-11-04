@@ -65,7 +65,7 @@ Should return `{"status":"ok",...}`
 ```bash
 npm test
 ```
-166 tests: parser, tax calculator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+177 tests: parser, tax calculator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
 
 ---
 
@@ -106,7 +106,7 @@ Answers a question with retrieval-augmented generation (see the project document
 
 **Request body:** `{ "question": "Which regime is better for me?", "payslip": { "summary": {…}, "breakdown": […] }, "history": [{ "role": "user", "content": "…" }] }` — `payslip` and `history` are optional.
 
-**Response `data`:** `mode` (`rag` | `retrieval-only` | `no-sources`), `answer` (with `[n]` citations), `sources` (`n`, `title`, `section`, `reference`, `source`, `text`), `cited` (numbers used), `toolCalls` (`name`, `args`, `result`), `retrievalMethod` (`hybrid` | `bm25`).
+**Response `data`:** `mode` (`rag` | `retrieval-only` | `no-sources`), `notice` (why AI was unavailable, in `retrieval-only` mode — rate limit, expired key, retired model), `answer` (with `[n]` citations), `sources` (`n`, `title`, `section`, `reference`, `source`, `text`), `cited` (numbers used), `toolCalls` (`name`, `args`, `result`), `retrievalMethod` (`hybrid` | `bm25`).
 
 ---
 

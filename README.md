@@ -20,7 +20,7 @@ cd clearslip-frontend-final/clearslip && npm install && npm run dev
 
 Open http://localhost:5173. The backend defaults to port 4000. If that port is taken, set `PORT` in `clearslip-backend/.env` and point `VITE_API_URL` in the frontend `.env` at it.
 
-Run the tests (166, Jest + Supertest):
+Run the tests (177, Jest + Supertest):
 
 ```bash
 cd clearslip-backend && npm test
@@ -34,7 +34,7 @@ The server reports which are on at `GET /api/health` (`features`) and in its sta
 |---|---|---|
 | "Describe it" mode and free-form questions | `GROQ_API_KEY` (free at console.groq.com) | Describe mode shows a note; inputs the rules engine can't read get a "paste your payslip lines" message |
 | "Email checklist" button | `N8N_WEBHOOK_URL` (+ `N8N_SECRET`) | Button hidden |
-| AI answers in Ask ClearSlip | `GROQ_API_KEY` | "Sources only" mode — shows the matching knowledge-base passages |
+| AI answers in Ask ClearSlip | `GROQ_API_KEY` (model: `GROQ_MODEL`, default `openai/gpt-oss-120b`) | "Sources only" mode — shows the matching knowledge-base passages. The same fallback, with a notice, covers a rate-limited, expired or invalid key |
 | Embedding (dense) retrieval | on by default; `RAG_DENSE=off` to disable | BM25 keyword retrieval only |
 
 ### Ask ClearSlip knowledge base
@@ -58,4 +58,4 @@ cd clearslip-backend && npm run rag:index && npm run rag:eval
 4. After setting `VITE_API_URL`, redeploy the frontend (Vite bakes it in at build time).
 5. Check `https://<backend>/api/health` returns `"status":"ok"`.
 
-Free-tier notes: the backend sleeps after ~15 minutes idle and takes up to a minute to wake (the frontend waits up to 90 s, and pings the backend on page load). The first image decode after a deploy also downloads Tesseract's ~10 MB English data, and the first Ask ClearSlip question downloads the ~35 MB embedding model.
+Free-tier notes: the backend sleeps after ~15 minutes idle and takes up to a minute to wake (the frontend waits up to 90 s, and pings the backend on page load). The first image decode after a deploy also downloads Tesseract's ~10 MB English data, and the first Ask ClearSlip question downloads the ~35 MB embedding model. Groq's free tier allows about two Ask ClearSlip answers a minute; extra questions get sources-only answers until the minute resets.
