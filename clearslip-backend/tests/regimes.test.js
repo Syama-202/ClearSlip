@@ -1,4 +1,4 @@
-import { newRegimeTax, oldRegimeTax, compareRegimes, hraExemption } from '../src/services/taxCalculator.js'
+import { newRegimeTax, oldRegimeTax, compareRegimes, hraExemption, oldRegimeBestCase } from '../src/services/taxCalculator.js'
 
 // Expected values are worked by hand: slab tax − rebate/marginal relief, then + 4% cess.
 describe('oldRegimeTax', () => {
@@ -83,5 +83,19 @@ describe('hraExemption', () => {
 
   test('is zero when no rent is paid', () => {
     expect(hraExemption({ ...base, rentPaidAnnual: 0, metro: true }).exemption).toBe(0)
+  })
+})
+
+describe('oldRegimeBestCase', () => {
+  test('nothing beats a new-regime tax of ₹0', () => {
+    expect(oldRegimeBestCase(900000, { hraReceived: 180000, basicPlusDa: 450000 })).toMatchObject({ newTax: 0, couldSave: 0 })
+  })
+
+  test('counts full 80C, NPS, ₹50,000 80D and the HRA (up to half of basic)', () => {
+    // ₹24 L: 24 L − 50k std − 6 L HRA − 1.5 L − 50k − 50k = ₹15 L taxable → ₹2,73,000; new regime ₹2,92,500
+    expect(oldRegimeBestCase(2400000, { hraReceived: 600000, basicPlusDa: 1200000 }))
+      .toEqual({ newTax: 292500, bestOldTax: 273000, couldSave: 19500 })
+    // HRA above half of basic doesn't count
+    expect(oldRegimeBestCase(2400000, { hraReceived: 900000, basicPlusDa: 1200000 }).bestOldTax).toBe(273000)
   })
 })

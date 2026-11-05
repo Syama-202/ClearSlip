@@ -7,8 +7,8 @@ const STEPS = [
 ]
 
 const FACTS = [
-  { icon: ShieldCheck, text: 'Nothing is stored — your payslip stays in this session' },
-  { icon: Calculator, text: 'Tax rules for FY 2025-26 (new regime)' },
+  { icon: ShieldCheck, text: "Nothing is stored on our server — saving to this device is up to you" },
+  { icon: Calculator, text: 'Tax rules for 2026-27 (both regimes)' },
   { icon: MessageSquareText, text: 'Describe it in plain words — Hinglish works too', needsAi: true },
 ]
 

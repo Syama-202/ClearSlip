@@ -95,7 +95,8 @@ describe('parsePayslipText — component recognition', () => {
       'Please decode this payslip: Basic 25000, HRA 12500, PF 3000, TDS 4200 deducted. Am I paying too much?'
     )
     expect(confidence).toBe(4)
-    expect(result.summary).toEqual({ takeHome: 30300, ctc: 486000, tds: 50400, savingsPotential: 8200 })
+    // ₹4.5L a year: no tax under the new regime, so investing more can't save any
+    expect(result.summary).toEqual({ takeHome: 30300, ctc: 486000, tds: 50400, estimatedTax: 0, savingsPotential: 0 })
   })
 
   test('splits on list commas but not thousands separators (regression)', () => {
@@ -219,11 +220,97 @@ describe('parsePayslipText — action items', () => {
     expect(result.actionItems.length).toBeGreaterThanOrEqual(2)
     expect(result.actionItems.length).toBeLessThanOrEqual(5)
     expect(ranks).toEqual([...ranks].sort())
-    expect(result.actionItems[0].action).toMatch(/rent receipts/)
+    // ₹5.4 L: the new regime's tax is ₹0, so it leads with that, not old-regime tips
+    expect(result.actionItems[0].action).toMatch(/^The new regime suits your salary: its tax is ₹0/)
   })
 
-  test('flags TDS above 15% of gross', () => {
-    const { result } = parsePayslipText('Basic 30000\nHRA 10000\nTDS 8000')
-    expect(result.actionItems.some(a => /TDS looks high/.test(a.action))).toBe(true)
+  // Re-audit R8: old-regime tips were shown even when they couldn't lower the tax
+  describe('old-regime tips only when the old regime could actually win', () => {
+    const tips = result => result.actionItems.filter(a => /^Submit your rent receipts|NPS account/.test(a.action))
+
+    test('none when the new regime is ₹0 (nothing can beat it)', () => {
+      const { result } = parsePayslipText('Basic 37,500\nHRA 15,000\nSpecial Allowance 18,900\nPF 4,500')
+      expect(tips(result)).toEqual([])
+      expect(result.actionItems.some(a => /wouldn't come lower/.test(a.action))).toBe(true)
+    })
+
+    test('none when the best case saves too little to be worth it, and it says how little', () => {
+      // ₹15 L: even with ₹3 L HRA, full 80C, NPS and 80D the old regime saves ₹1,300
+      const { result } = parsePayslipText('Basic 50000\nHRA 25000\nSpecial Allowance 50000\nTDS 8000')
+      expect(tips(result)).toEqual([])
+      expect(result.actionItems.some(a => /would save at most ₹1,300 a year/.test(a.action))).toBe(true)
+    })
+
+    test('kept, with the possible saving, when the old regime could win', () => {
+      // ₹24 L with ₹6 L HRA: best-case old regime ₹2,73,000 vs ₹2,92,500 new
+      const { result } = parsePayslipText('Basic 1,00,000\nHRA 50,000\nSpecial Allowance 50,000\nPF 12,000\nTDS 24,000')
+      expect(tips(result).map(a => a.priority)).toEqual(['high', 'medium'])
+      expect(result.actionItems.find(a => /NPS account/.test(a.action)).action).toMatch(/save you up to ₹19,500 a year/)
+      expect(result.actionItems.some(a => /new regime suits/.test(a.action))).toBe(false)
+    })
+  })
+
+  test('flags TDS well above the tax actually due (the "am I paying too much?" example)', () => {
+    const { result } = parsePayslipText('Basic 25000, HRA 12500, PF 3000, TDS 4200 deducted. Am I paying too much?')
+    const item = result.actionItems.find(a => /paying too much tax/.test(a.action))
+    expect(item.priority).toBe('high')
+    expect(item.action).toMatch(/₹50,400 a year/)
+    expect(item.action).toMatch(/about ₹0 under the cheaper regime/)
+    expect(result.actionItems[0]).toBe(item)
+  })
+
+  test('warns when TDS is well below the tax due', () => {
+    // ₹18L a year: ₹1,50,800 under the new regime, but only ₹24,000 of TDS at this rate
+    const { result } = parsePayslipText('Basic 60000\nHRA 30000\nSpecial Allowance 60000\nPF 7200\nTDS 2000')
+    expect(result.summary.estimatedTax).toBe(150800)
+    const item = result.actionItems.find(a => /below the estimated tax/.test(a.action))
+    expect(item.priority).toBe('medium')
+    expect(item.action).toMatch(/₹24,000 a year.*₹1,50,800/)
+  })
+
+  test('says nothing about TDS when it is close to the tax due', () => {
+    // ₹15L: ₹97,500 new-regime tax; TDS ₹8,000 × 12 = ₹96,000
+    const { result } = parsePayslipText('Basic 50000\nHRA 25000\nSpecial Allowance 50000\nTDS 8000')
+    expect(result.summary.estimatedTax).toBe(97500)
+    expect(result.actionItems.some(a => /TDS/.test(a.action))).toBe(false)
+  })
+
+  test('says nothing about TDS when the payslip has none (the figure is our own estimate)', () => {
+    const { result } = parsePayslipText('Basic 60000\nHRA 30000\nSpecial Allowance 60000')
+    expect(result.actionItems.some(a => /TDS/.test(a.action))).toBe(false)
+  })
+})
+
+describe('parsePayslipText — signs, sources and checks', () => {
+  test('keeps a minus sign attached to an amount and says so', () => {
+    const { result } = parsePayslipText('Basic 25000\nBonus -5000\nPF 3000')
+    expect(result.breakdown.find(r => r.component.startsWith('Bonus')).monthly).toBe(-5000)
+    expect(result.summary.takeHome).toBe(17000)
+    expect(result.checks[0]).toMatch(/minus sign .*recovery or reversal/)
+  })
+
+  test('treats a spaced dash as a separator, not a minus sign', () => {
+    const { result } = parsePayslipText('Basic Salary - 37,500\nHRA - 15,000\nPF - 4,500')
+    expect(result.summary.takeHome).toBe(48000)
+    expect(result.checks).toEqual([])
+  })
+
+  test('flags figures that look yearly but were read as monthly', () => {
+    const { result } = parsePayslipText('Basic 600000\nHRA 240000\nPF 72000')
+    expect(result.checks.some(c => /read as monthly.*₹1,00,80,000 a year/.test(c))).toBe(true)
+  })
+
+  test('records the payslip line each figure was read from', () => {
+    const { result } = parsePayslipText('Basic Salary 37,500 | Employee PF 4,500\nHRA 15,000')
+    expect(result.breakdown.find(r => r.component === 'Basic Salary').source).toBe('Basic Salary 37,500 | Employee PF 4,500')
+    expect(result.breakdown.find(r => r.component.startsWith('HRA')).source).toBe('HRA 15,000')
+  })
+
+  test('marks amounts whose ₹ sign was corrected using the totals', () => {
+    const text = 'Basic 47,600\nDA 29,988\nHRA 39,520\nTransport Allowance 31,800\nGross Earnings 390,042\nNPS 7,759\nTotal Deductions 38,469'
+    const { result } = parsePayslipText(text, { fromOcr: true })
+    const corrected = result.breakdown.filter(r => r.corrected)
+    expect(corrected.length).toBeGreaterThan(0)
+    expect(result.checks.some(c => /₹ sign was probably read as a digit/.test(c))).toBe(true)
   })
 })

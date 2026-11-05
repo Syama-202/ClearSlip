@@ -1,5 +1,7 @@
 /**
- * Deterministic income-tax calculators for salaried individuals, FY 2025-26.
+ * Deterministic income-tax calculators for salaried individuals: tax year 2026-27
+ * (FY 2026-27). Budget 2026 kept the FY 2025-26 slabs, standard deduction and
+ * 87A rebate, so the same figures cover both years.
  * Used by the rules engine (new-regime estimate) and as tools the Ask
  * ClearSlip assistant calls, so the LLM never does tax arithmetic itself.
  *
@@ -8,7 +10,7 @@
  */
 
 const CESS_RATE = 0.04
-const SURCHARGE_THRESHOLD = 5000000
+export const SURCHARGE_THRESHOLD = 5000000   // ₹50 lakh: surcharge applies above this (not modelled)
 
 const NEW_REGIME = {
   standardDeduction: 75000,
@@ -138,6 +140,22 @@ export function compareRegimes(grossSalary, deductions = {}) {
 }
 
 /**
+ * Tax saved by using the full 80C and 80CCD(1B) limits: the lower of the two
+ * regimes' tax with the deductions given, minus the same with both limits used.
+ * Zero when the new regime already wins, as deductions don't lower its tax.
+ */
+export function investmentSaving(grossSalary, { section80C = 0, professionalTax = 0, basicPlusDa = 0 } = {}) {
+  const lowestTax = deductions => {
+    const { newRegime, oldRegime } = compareRegimes(grossSalary, deductions)
+    return Math.min(newRegime.totalTax, oldRegime.totalTax)
+  }
+  const current = { section80C, professionalTax, basicPlusDa }
+  const taxNow = lowestTax(current)
+  const saving = Math.max(0, taxNow - lowestTax({ ...current, section80C: CAPS.section80C, section80CCD1B: CAPS.section80CCD1B }))
+  return { taxNow, saving }
+}
+
+/**
  * The total old-regime deductions (on top of the standard deduction) at which
  * the old regime's tax falls to the new regime's. Below this the new regime
  * costs less, whatever mix of 80C, 80D, HRA etc. makes up the total.
@@ -156,6 +174,30 @@ export function oldRegimeBreakEven(grossSalary, { employerNps = 0, basicPlusDa =
     else low = mid + 1
   }
   return { newRegimeTax: newTax, deductionsNeeded: low }
+}
+
+// Health insurance (80D) most salaried people can claim: self/family plus parents, both under 60
+const TYPICAL_80D = 50000
+
+/**
+ * The most the old regime could save over the new one, if every common deduction
+ * were claimed in full: 80C, NPS 80CCD(1B), health insurance for self and parents,
+ * and the payslip's whole HRA as exempt (up to half of basic + DA). `couldSave` is
+ * 0 when no mix of these makes the old regime cheaper — then old-regime tips (rent
+ * receipts, NPS, more 80C) can't lower this person's tax. A home loan isn't
+ * included; the What-if simulator covers it.
+ */
+export function oldRegimeBestCase(grossSalary, { hraReceived = 0, professionalTax = 0, basicPlusDa = 0 } = {}) {
+  const newTax = newRegimeTax(grossSalary, { basicPlusDa }).totalTax
+  const bestOldTax = oldRegimeTax(grossSalary, {
+    section80C: CAPS.section80C,
+    section80CCD1B: CAPS.section80CCD1B,
+    section80D: TYPICAL_80D,
+    hraExemption: Math.min(toAmount(hraReceived), toAmount(basicPlusDa) * 0.5),
+    professionalTax,
+    basicPlusDa,
+  }).totalTax
+  return { newTax, bestOldTax, couldSave: Math.max(0, newTax - bestOldTax) }
 }
 
 // Section 10(13A) / Rule 2A: metro cities get 50% of salary, others 40%
