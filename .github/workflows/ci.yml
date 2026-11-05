@@ -1,0 +1,73 @@
+# Runs on every push to main and on pull requests: the backend tests, the
+# frontend's component tests, a check for known vulnerabilities in what ships to
+# production, the frontend build, and an end-to-end test in a real browser.
+# Nothing calls Groq or n8n (mocked, or run without a key), so no secrets are needed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clearslip-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clearslip-backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      # Only production dependencies: dev tools never reach the server
+      - run: npm audit --omit=dev --audit-level=high
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clearslip-frontend-final/clearslip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: clearslip-frontend-final/clearslip/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+
+  # The whole app in a real browser: Playwright starts the backend (no AI key,
+  # keyword search only) and the frontend, then walks through the main journeys
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            clearslip-backend/package-lock.json
+            clearslip-frontend-final/clearslip/package-lock.json
+      - run: npm ci --omit=dev
+        working-directory: clearslip-backend
+      - run: npm ci
+        working-directory: clearslip-frontend-final/clearslip
+      - run: npx playwright install --with-deps chromium
+        working-directory: clearslip-frontend-final/clearslip
+      - run: npm run e2e
+        working-directory: clearslip-frontend-final/clearslip
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: clearslip-frontend-final/clearslip/test-results/
+          retention-days: 7
