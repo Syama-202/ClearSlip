@@ -65,7 +65,13 @@ Should return `{"status":"ok",...}`
 ```bash
 npm test
 ```
-187 tests: parser, tax calculator, what-if simulator, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+316 tests: parser (including messy payslips: bonus months, unknown lines, totals that disagree), tax calculator, what-if simulator, AI answer checks (planted figures, outages, timeouts), security and privacy checks, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+
+### 6. Check a deployed copy
+```bash
+npm run smoke -- https://clearslip-backend.onrender.com https://clearslip-frontend.onrender.com
+```
+Runs 13 checks from outside: health, decoding, the calculator, Ask ClearSlip, body limits, CORS between the two services, security headers, whether the site was built with the right `VITE_API_URL` (in the bundle and in its Content-Security-Policy), and that the OCR files are served by the site itself. No AI calls. See [DEPLOY.md](../DEPLOY.md).
 
 ---
 
@@ -90,7 +96,7 @@ Note: the first image request downloads Tesseract's English language data (~10 M
 {
   "success": true,
   "data": {
-    "summary": { "takeHome": 52400, "ctc": 800000, "tds": 50400, "savingsPotential": 46800 },
+    "summary": { "takeHome": 52400, "ctc": 800000, "tds": 50400, "estimatedTax": 0, "savingsPotential": 0 },
     "breakdown": [...],
     "actionItems": [...],
     "disclaimer": "...",
@@ -99,6 +105,19 @@ Note: the first image request downloads Tesseract's English language data (~10 M
 }
 ```
 
+`estimatedTax` is the yearly tax on the salary under the cheaper regime, with PF and professional tax as the only deductions. `savingsPotential` is how much using the full 80C and NPS limits would lower it. It is often ₹0, because deductions don't reduce new-regime tax. When payslip TDS is more than ₹6,000 a year above `estimatedTax`, the first action item says the user may be overpaying.
+
+Each `breakdown` row from the rules engine also has `source` (the payslip line it was read from) and, when the ₹ sign was repaired, `corrected: true`. `checks` lists "please check" notes (minus signs, figures that look yearly, repaired amounts). A text block may carry `origin`: `"typed"` (default), `"pdf"` (a PDF's text layer read in the browser) or `"ocr"` (read with OCR in the browser, so the ₹ repair applies).
+
+---
+
+### POST /api/decode/recalculate
+Recalculates a decode from figures the user checked or corrected. No OCR or AI.
+
+**Request body:** `{ "breakdown": [{ "component": "Basic Salary", "type": "earning", "monthly": 37500 }, { "component": "Employee PF", "type": "deduction", "monthly": 1800 }] }` (1–30 rows)
+
+**Response `data`:** the same shape as `/api/decode`, with `engine: "edited"` and `edited: true` on each row. `422 IMPOSSIBLE_FIGURES` if take-home comes to zero or less.
+
 ---
 
 ### POST /api/ask
@@ -106,7 +125,12 @@ Answers a question with retrieval-augmented generation (see the project document
 
 **Request body:** `{ "question": "Which regime is better for me?", "payslip": { "summary": {…}, "breakdown": […] }, "history": [{ "role": "user", "content": "…" }] }` — `payslip` and `history` are optional.
 
-**Response `data`:** `mode` (`rag` | `retrieval-only` | `no-sources`), `notice` (why AI was unavailable, in `retrieval-only` mode — rate limit, expired key, retired model), `answer` (with `[n]` citations), `sources` (`n`, `title`, `section`, `reference`, `source`, `text`), `cited` (numbers used), `toolCalls` (`name`, `args`, `result`), `retrievalMethod` (`hybrid` | `bm25`).
+**Response `data`:** `mode` (`rag` | `retrieval-only` | `no-sources` | `clarify` — a vague question with a payslip attached, answered with `suggestions`), `notice` (why AI was unavailable, in `retrieval-only` mode — rate limit, expired key, retired model), `answer` (with `[n]` citations), `sources` (`n`, `title`, `section`, `reference`, `source`, `text`), `cited` (numbers used), `toolCalls` (`name`, `args`, `result`), `retrievalMethod` (`hybrid` | `bm25`).
+
+In `rag` mode the answer also comes as `parts`: `[{ kind, text }]` with `kind` one of `payslip` (figures from the user's payslip), `explanation` (rules, cited), `calculation` (a calculator result) or `missing` (what the sources don't cover). It is `null` if the model didn't label its answer. `checks` reports what the server verified in code: `untracedAmounts` (₹ figures that match nothing in the payslip, a calculator result or a source), `invalidCitations` (removed from the answer), `noCitations`, and `calculationWithoutTool`.
+
+### POST /api/ask/stream
+The same request, answered as Server-Sent Events: `text` (`{ text }`, a piece of the answer as it is written), `reset` (discard the text so far — the model turned to a calculator), `done` (`{ data }`, exactly what `/api/ask` returns), or `error` (`{ error, code }`). Validation errors (empty question, PAN/Aadhaar) are plain JSON responses before the stream starts.
 
 ---
 
@@ -120,14 +144,15 @@ The what-if simulator: both regimes' tax for a salary plus the deductions the us
 ---
 
 ### POST /api/checklist
-Forwards checklist to n8n for email delivery.
+Forwards a checklist to n8n for email delivery. Only checklists ClearSlip itself produced are accepted: send back the `actionItems`, `summary` and `checklistToken` exactly as `/api/decode` returned them. Changed text gets `403 CHECKLIST_NOT_VERIFIED`, and links must be https on an official site (`.gov.in`, `.nic.in`, NSDL).
 
 **Request body:**
 ```json
 {
   "email": "user@example.com",
-  "checklistItems": [{ "action": "Submit rent receipts to HR", "priority": "high" }],
-  "payslipSummary": { "takeHome": 52400 }
+  "checklistItems": [{ "priority": "high", "action": "Submit your rent receipts / rent agreement to HR…", "link": null }],
+  "payslipSummary": { "takeHome": 30300, "ctc": 486000, "tds": 50400, "estimatedTax": 0, "savingsPotential": 0 },
+  "checklistToken": "<64 hex characters from the decode response>"
 }
 ```
 

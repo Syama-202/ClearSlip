@@ -1,21 +1,32 @@
 # Render Blueprint — deploys the backend and frontend together (free tier).
 # Render dashboard → New → Blueprint → pick this repo. Then fill in the
-# variables marked sync: false (see README.md → Deploy).
+# variables marked sync: false (see DEPLOY.md for the full checklist).
 services:
   - type: web
     name: clearslip-backend
     runtime: node
     rootDir: clearslip-backend
     plan: free
-    buildCommand: npm install
+    # npm ci installs exactly what package-lock.json lists (the tested versions)
+    buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION       # the version CI tests with
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL       # the clearslip-frontend URL, e.g. https://clearslip-frontend.onrender.com
         sync: false
-      - key: GROQ_API_KEY       # optional — enables "Describe it" mode
+      - key: GROQ_API_KEY       # optional — AI answers and the AI payslip reader
+        sync: false
+      - key: GROQ_FALLBACK_MODEL
+        value: openai/gpt-oss-20b
+      - key: OCR_WORKERS        # the free plan has 512 MB; one server OCR worker fits comfortably
+        value: "1"
+      - key: SIGNING_SECRET     # signs checklists; Render generates a random value once
+        generateValue: true
+      - key: SENTRY_DSN         # optional — error tracking (also run: npm install @sentry/node)
         sync: false
       - key: N8N_WEBHOOK_URL    # optional — enables "Email checklist"
         sync: false
@@ -26,8 +37,37 @@ services:
     name: clearslip-frontend
     runtime: static
     rootDir: clearslip-frontend-final/clearslip
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
-      - key: VITE_API_URL       # the clearslip-backend URL, e.g. https://clearslip-backend.onrender.com
+      - key: NODE_VERSION       # Vite 7 needs Node 20.19+; CI tests with 22
+        value: "22"
+      # The clearslip-backend URL, e.g. https://clearslip-backend.onrender.com. Also
+      # written into the page's Content-Security-Policy (connect-src) at build time.
+      - key: VITE_API_URL
         sync: false
+    # The Content-Security-Policy is a <meta> tag in the built page (see vite.config.js),
+    # since it has to name the API's address, which is only known at build time
+    headers:
+      # Basic protections for the site itself (the API sets its own with Helmet)
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      # Built files have content hashes in their names, so they can be cached for good
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      # OCR's engine and English data (about 7 MB), served by the site itself; their
+      # names don't change between versions, so they're cached for a week, not forever
+      - path: /tesseract/*
+        name: Cache-Control
+        value: public, max-age=604800
