@@ -1,6 +1,17 @@
 import { answerQuestion } from '../services/askService.js'
-import { validate, askRequestSchema } from '../utils/validateInput.js'
+import { validate, askRequestSchema, askFeedbackSchema } from '../utils/validateInput.js'
 import { containsAadhaar } from '../utils/aadhaar.js'
+import { createDailyQuota } from '../utils/dailyQuota.js'
+import { isLocal } from '../middleware/rateLimiter.js'
+import { config } from '../config/index.js'
+
+// Full AI answers per visitor per day; past it, answers are sources only. Cached
+// answers cost no AI call, so they don't count. This machine (development) isn't limited.
+const aiQuota = createDailyQuota(config.askDailyAiLimit)
+const aiAllowed = req => isLocal(req) || aiQuota.allows(req.ip)
+const countAnswer = (req, data) => {
+  if (data.mode === 'rag' && !data.cached && !isLocal(req)) aiQuota.count(req.ip)
+}
 
 const SENSITIVE = {
   success: false,
@@ -27,7 +38,8 @@ export async function handleAsk(req, res, next) {
     const { question, payslip, history } = validate(askRequestSchema, req.body)
     if (hasIdentifier(question)) return res.status(400).json(SENSITIVE)
 
-    const data = await answerQuestion({ question, payslip, history, signal: cancelOnDisconnect(res) })
+    const data = await answerQuestion({ question, payslip, history, signal: cancelOnDisconnect(res), aiAllowed: aiAllowed(req) })
+    countAnswer(req, data)
     return res.status(200).json({ success: true, data })
   } catch (err) {
     if (err.code === 'CLIENT_GONE') return // nobody is waiting for the reply
@@ -63,9 +75,10 @@ export async function handleAskStream(req, res, next) {
 
   try {
     const data = await answerQuestion({
-      question, payslip, history, signal,
+      question, payslip, history, signal, aiAllowed: aiAllowed(req),
       stream: { onText: text => send('text', { text }), onReset: () => send('reset', {}) },
     })
+    countAnswer(req, data)
     send('done', { data })
   } catch (err) {
     if (err.code === 'CLIENT_GONE') return res.end()
@@ -73,4 +86,22 @@ export async function handleAskStream(req, res, next) {
     send('error', { error: err.code ? err.message : 'Something went wrong on our side. Please try again.', code: err.code || 'SERVER_ERROR' })
   }
   res.end()
+}
+
+/**
+ * POST /api/ask/feedback — "was this answer helpful?". Recorded as one log line:
+ * the rating, the kind of answer, the knowledge-base passages it cited and whether
+ * a check had flagged it. Never the question, the answer or anything from a payslip,
+ * so the log shows which topics answer badly without holding anyone's data.
+ */
+export function handleAskFeedback(req, res, next) {
+  try {
+    const { helpful, mode, sources = [], flagged = false } = validate(askFeedbackSchema, req.body)
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(JSON.stringify({ t: new Date().toISOString(), id: req.id, event: 'ask-feedback', helpful, mode, flagged, sources }))
+    }
+    return res.status(200).json({ success: true, data: { recorded: true } })
+  } catch (err) {
+    next(err)
+  }
 }

@@ -5,7 +5,7 @@ import { config } from '../config/index.js'
 // reports IPv4 localhost as ::ffff:127.0.0.1 when listening on IPv6. Behind a
 // host's proxy in production, req.ip is the real client, so this never matches.
 const LOCAL_IPS = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
-const isLocal = req => LOCAL_IPS.includes(req.ip)
+export const isLocal = req => LOCAL_IPS.includes(req.ip)
 
 export const decodeRateLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,

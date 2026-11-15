@@ -117,6 +117,16 @@ export const askRequestSchema = z.object({
     .optional(),
 })
 
+// "Was this helpful?" on an Ask ClearSlip answer. Passages are named by their
+// knowledge-base ID ("hra-exemption#how-it-is-calculated"), never free text, so
+// nothing a visitor types can end up in the log.
+export const askFeedbackSchema = z.object({
+  helpful: z.boolean(),
+  mode: z.enum(['rag', 'retrieval-only']),
+  sources: z.array(z.string().regex(/^[a-z0-9-]{1,60}#[a-z0-9-]{1,80}$/)).max(8).optional(),
+  flagged: z.boolean().optional(),
+})
+
 // What-if simulator inputs, all annual rupees except monthly rent
 const amount = (max) => z.number().min(0).max(max).optional()
 export const simulateRequestSchema = z.object({

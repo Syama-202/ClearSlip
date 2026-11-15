@@ -22,6 +22,8 @@ services:
         sync: false
       - key: GROQ_FALLBACK_MODEL
         value: openai/gpt-oss-20b
+      - key: ASK_DAILY_AI_LIMIT # full AI answers per visitor per day; after that, sources only
+        value: "40"
       - key: OCR_WORKERS        # the free plan has 512 MB; one server OCR worker fits comfortably
         value: "1"
       - key: SIGNING_SECRET     # signs checklists; Render generates a random value once

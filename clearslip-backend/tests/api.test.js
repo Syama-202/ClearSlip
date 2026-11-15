@@ -10,6 +10,7 @@ process.env.N8N_WEBHOOK_URL = ''
 const { default: app } = await import('../src/app.js')
 const { config } = await import('../src/config/index.js')
 const { shutdownOcr } = await import('../src/services/ocrService.js')
+const { allowedOrigins } = await import('../src/middleware/cors.js')
 
 // The OCR test starts the worker pool; stop it so Jest can exit
 afterAll(() => shutdownOcr())
@@ -71,6 +72,11 @@ describe('CORS', () => {
     const res = await request(app).post('/api/tax/simulate').set('Origin', 'https://evil.example').send({ grossAnnual: 900000 })
     expect(res.status).toBe(403)
     expect(res.body.code).toBe('FORBIDDEN')
+  })
+
+  test('allows the local dev servers only outside production', () => {
+    expect(allowedOrigins('development')).toContain('http://localhost:5173')
+    expect(allowedOrigins('production')).toEqual([config.frontendUrl])
   })
 })
 

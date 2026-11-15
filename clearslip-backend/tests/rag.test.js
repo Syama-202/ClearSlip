@@ -10,7 +10,8 @@ const { config } = await import('../src/config/index.js')
 const { chunkDocument, loadCorpus, corpusHash } = await import('../src/rag/corpus.js')
 const { tokenize } = await import('../src/rag/bm25.js')
 const { getKnowledgeBase, fuse, INDEX_FILE } = await import('../src/rag/knowledgeBase.js')
-const { citedNumbers, normalizeCitations, retrievalQueryFor, clearAnswerCache } = await import('../src/services/askService.js')
+const { citedNumbers, normalizeCitations, retrievalQueryFor, clearAnswerCache, answerQuestion } = await import('../src/services/askService.js')
+const { createDailyQuota } = await import('../src/utils/dailyQuota.js')
 const { executeTool } = await import('../src/rag/tools.js')
 const { EVAL_QUESTIONS, OFF_TOPIC_QUESTIONS } = await import('./fixtures/ragEval.js')
 
@@ -439,6 +440,55 @@ describe('POST /api/ask', () => {
         '40% of basic + DA (non-metro city)': 180000,
       })
     })
+  })
+})
+
+describe('daily AI limit per visitor', () => {
+  test('counts per visitor, and starts again the next day', () => {
+    let now = Date.UTC(2026, 10, 14, 10)
+    const quota = createDailyQuota(2, () => now)
+    quota.count('a'); quota.count('a')
+    expect(quota.allows('a')).toBe(false)
+    expect(quota.allows('b')).toBe(true)
+    now += 24 * 60 * 60 * 1000
+    expect(quota.allows('a')).toBe(true)
+  })
+
+  test('a limit of 0 means no cap', () => {
+    const quota = createDailyQuota(0)
+    for (let i = 0; i < 100; i++) quota.count('a')
+    expect(quota.allows('a')).toBe(true)
+  })
+
+  test('past the limit, the answer is the sources with a notice, and the AI is not called', async () => {
+    config.groqApiKey = 'test-key'
+    const fetchSpy = jest.spyOn(globalThis, 'fetch')
+    const data = await answerQuestion({ question: 'How do I calculate HRA exemption?', aiAllowed: false })
+    expect(data).toMatchObject({ mode: 'retrieval-only', answer: null })
+    expect(data.notice).toMatch(/daily limit per visitor/)
+    expect(data.sources).toHaveLength(3)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    config.groqApiKey = ''
+    fetchSpy.mockRestore()
+  })
+})
+
+describe('POST /api/ask/feedback', () => {
+  const feedback = body => request(app).post('/api/ask/feedback').send(body)
+
+  test('records a rating with the passages named by ID', async () => {
+    const answer = await ask({ question: 'How do I calculate HRA exemption?' })
+    const ids = answer.body.data.sources.map(s => s.id)
+    expect(ids[0]).toMatch(/^[a-z0-9-]+#[a-z0-9-]+$/)
+    const res = await feedback({ helpful: false, mode: 'retrieval-only', sources: ids })
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ success: true, data: { recorded: true } })
+  })
+
+  test('refuses free text, so nothing a visitor types reaches the log', async () => {
+    expect((await feedback({ helpful: true, mode: 'rag', sources: ['My salary is 50,000 and my PAN is ABCDE1234F'] })).status).toBe(400)
+    expect((await feedback({ helpful: 'yes', mode: 'rag' })).status).toBe(400)
+    expect((await feedback({ helpful: true, mode: 'rag', comment: 'x' })).status).toBe(200) // unknown fields are dropped, not logged
   })
 })
 

@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
     service: 'ClearSlip API',
     status: 'ok',
     message: `This is the ClearSlip backend. Open the website at ${config.frontendUrl}`,
-    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/decode/recalculate', 'POST /api/ask', 'POST /api/tax/simulate', 'POST /api/checklist'],
+    endpoints: ['GET /api/health', 'POST /api/decode', 'POST /api/decode/recalculate', 'POST /api/ask', 'POST /api/ask/feedback', 'POST /api/tax/simulate', 'POST /api/checklist'],
   })
 })
 app.use('/api/health', healthRouter)

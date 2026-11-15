@@ -19,6 +19,10 @@ const UNAVAILABLE_NOTICES = {
   GROQ_NETWORK: "ClearSlip couldn't reach the AI service, so here are the most relevant passages instead. Try again in a few minutes for a full answer.",
 }
 
+// A visitor who has had the day's share of AI answers still gets the passages
+const DAILY_LIMIT_NOTICE =
+  "You've had today's full AI answers (there's a daily limit per visitor, so the free AI allowance is shared fairly), so here are the most relevant passages instead. Full answers are back tomorrow."
+
 // A question that tries to change how ClearSlip answers is declined in code,
 // before retrieval or any AI call (see looksLikeInstructions)
 const DECLINED_ANSWER =
@@ -79,14 +83,15 @@ export function clearAnswerCache() {
   answerCache.clear()
 }
 
-// `signal` cancels the AI call when the user leaves before the answer is done
-export async function answerQuestion({ question, payslip, history = [], stream, signal }) {
+// `signal` cancels the AI call when the user leaves before the answer is done;
+// `aiAllowed: false` (the visitor's daily AI share is used up) answers with sources only
+export async function answerQuestion({ question, payslip, history = [], stream, signal, aiAllowed = true }) {
   const cacheable = config.askCacheTtlMs > 0 && !payslip?.breakdown?.length && !history.length
   const key = cacheable && cacheKey(question)
   const hit = key && answerCache.get(key)
   if (hit && Date.now() - hit.at < config.askCacheTtlMs) return { ...hit.data, cached: true }
 
-  const data = await answerUncached({ question, payslip, history, stream, signal })
+  const data = await answerUncached({ question, payslip, history, stream, signal, aiAllowed })
   // Only full AI answers that passed every check: a sources-only reply (AI busy)
   // should be retried next time, and a flagged one shouldn't be repeated
   if (key && data.mode === 'rag' && checksPassed(data.checks)) {
@@ -102,13 +107,14 @@ export function checksPassed(checks = {}) {
     && !checks.noCitations && !checks.calculationWithoutTool
 }
 
-async function answerUncached({ question, payslip, history, stream, signal }) {
+async function answerUncached({ question, payslip, history, stream, signal, aiAllowed }) {
   if (looksLikeInstructions(question)) {
     return { retrievalMethod: null, sources: [], cited: [], toolCalls: [], mode: 'declined', answer: DECLINED_ANSWER }
   }
   const retrieval = await getKnowledgeBase().retrieve(retrievalQueryFor(question, history), { k: TOP_K })
   const sources = retrieval.results.map((r, i) => ({
     n: i + 1,
+    id: r.id, // names the passage in answer feedback
     title: r.title,
     section: r.section,
     reference: r.reference,
@@ -125,6 +131,7 @@ async function answerUncached({ question, payslip, history, stream, signal }) {
   }
   const sourcesOnly = notice => ({ ...base, mode: 'retrieval-only', answer: null, sources: sources.slice(0, 3), notice })
   if (!config.groqApiKey) return sourcesOnly(null)
+  if (!aiAllowed) return sourcesOnly(DAILY_LIMIT_NOTICE)
 
   try {
     return { ...base, ...(await generateAnswer({ question, payslip, history, sources, stream, signal })) }

@@ -25,6 +25,9 @@ export const config = {
   // Answers to general questions (no payslip, no chat history) are cached this long;
   // off in tests, which ask the same question with different mocked answers
   askCacheTtlMs: process.env.NODE_ENV === 'test' ? 0 : parseInt(process.env.ASK_CACHE_TTL_MS || String(6 * 60 * 60 * 1000)),
+  // Full AI answers one visitor can get per day before theirs fall back to sources only,
+  // so one person can't use up the free AI allowance everyone shares; 0 = no cap
+  askDailyAiLimit: parseInt(process.env.ASK_DAILY_AI_LIMIT ?? '40'),
   // Optional error tracking (see src/monitoring.js)
   sentryDsn: process.env.SENTRY_DSN || '',
   // Optional — without it, POST /api/checklist returns a clear 503

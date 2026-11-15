@@ -65,7 +65,7 @@ Should return `{"status":"ok",...}`
 ```bash
 npm test
 ```
-316 tests: parser (including messy payslips: bonus months, unknown lines, totals that disagree), tax calculator, what-if simulator, AI answer checks (planted figures, outages, timeouts), security and privacy checks, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
+322 tests: parser (including messy payslips: bonus months, unknown lines, totals that disagree), tax calculator, what-if simulator, AI answer checks (planted figures, outages, timeouts), security and privacy checks, six real-world payslip samples (as text and as OCR output) and API endpoints. They never call Groq or n8n, even if your `.env` has real keys.
 
 ### 6. Check a deployed copy
 ```bash
