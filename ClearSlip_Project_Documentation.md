@@ -66,7 +66,7 @@ Response contract is unchanged from the original Claude-based version, so the fr
 | Decode pipeline wired end to end (OCR → rules → fallback) | `src/controllers/decodeController.js` | ✅ Done — response includes `engine: "rules" \| "llm-fallback"` |
 | Tax slabs updated to Budget 2025 (FY 2025-26) + 4% cess + 87A marginal relief; confirmed unchanged for tax year 2026-27 (§4.7) | `src/services/rulesEngine.js`, `src/prompts/fallbackPrompt.js` | ✅ Done |
 | Parser handles real layouts: two-column lines, YTD columns, `k`/`L`/`Cr` units, PF No/UAN/employer lines ignored | `src/services/rulesEngine.js` | ✅ Done — see §4.1–4.2 |
-| Jest + Supertest test suite (316 backend + 27 frontend + 8 end-to-end) | `tests/` | ✅ Done — see §9 |
+| Jest + Supertest test suite (322 backend + 31 frontend + 8 end-to-end) | `tests/` | ✅ Done — see §9 |
 | Tested against 6 real-world payslip formats from Indian HR websites (text + OCR) | `tests/webSamples.test.js` | ✅ Done — 6/6, see §9.1 |
 | Demo-readiness: dead "Sign in"/"Get started" buttons removed; unfinished Govt Docs tab hidden (`SHOW_GOVT_DOCS` in `App.jsx`) | `Navbar.jsx`, `App.jsx` | ✅ Done |
 | UI adapts to the server's optional features (`GET /api/health` → `features`): Describe mode explains it needs AI, AI-only examples hidden, email button hidden when n8n is off; plain-language error instead of setup instructions | `useServerFeatures.js`, `InputPanel.jsx`, `ActionCard.jsx`, `llmFallbackService.js` | ✅ Done |
@@ -202,7 +202,7 @@ Route to LLM fallback (or return a clear error if no fallback is configured) whe
 | 1 | JWT auth + user model + decode-history persistence (DB) | Turns the project from a stateless API demo into a real application |
 | 2 | ~~Old vs New tax regime comparator~~ ✅ done as a calculator + Ask ClearSlip tool (§12) | Most-requested real-world feature; reuses existing engine |
 | 2 | History/trend dashboard (Recharts: take-home & tax over time) | Demonstrates data visualization + persistence together |
-| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (316 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
+| 3 | ~~Jest test suite for `rulesEngine.js` and the tax calculator~~ ✅ done (322 tests, incl. old regime & comparison) | Shows testing discipline — high grading value for low effort |
 | 3 | ~~Bug fixing against edge cases (unusual formats)~~ ✅ two-column/YTD/units done — test with more real payslip photos | Real debugging, not just feature-adding |
 | 4 | Deployment (Railway/Render, backend + frontend) | Required for a working demo/viva |
 | 4 | UI polish pass | Presentation quality |
@@ -338,7 +338,7 @@ The original `payslipDecoder.js` prompt (used with Claude's vision API) has been
 
 ---
 
-## 9. Testing (done — 316 backend, 27 frontend and 8 end-to-end automated tests, all passing)
+## 9. Testing (done — 322 backend, 31 frontend and 8 end-to-end automated tests, all passing)
 
 Run with `npm test` in `clearslip-backend` (Jest + Supertest).
 
@@ -776,6 +776,26 @@ The re-audit (`ClearSlip_Reaudit_2026-11-05.md`) found that the tax maths was ex
 - Sentry, if wanted;
 - a custom domain, if wanted;
 - a small beta with real payslips.
+
+---
+
+## 24. Follow-up to the audits (14 Nov 2026)
+
+The audit brief was run against the code once more. Every finding from both audits was already fixed, so this pass closed the smaller items the re-audit had listed as low priority or "worth adding":
+
+| Item (where the re-audit listed it) | What was done |
+|---|---|
+| CORS allowed `localhost` in production (G5) | `cors.js` allows Vite's dev and preview addresses only outside production. In production the only allowed origin is `FRONTEND_URL`. Checked on a production-mode server: a `localhost:5173` origin gets 403, the site's origin gets 200. |
+| One visitor could use up the AI allowance everyone shares (E10) | A per-visitor daily cap on full AI answers (`ASK_DAILY_AI_LIMIT`, default 40, 0 = off; `utils/dailyQuota.js`). Past it, that visitor's answers are the matching passages with a notice, the same fallback as a rate limit. Cached answers cost no AI call and aren't counted. Counts are held in memory and cleared each day. |
+| No way to learn which answers are bad (E5) | "Was this helpful? Yes / No" under each answer, sent to `POST /api/ask/feedback`. The server logs one line: the rating, the kind of answer, the knowledge-base IDs of the passages shown and whether a check had flagged it. It never receives the question or the answer, and free text is refused by the schema (passages are named by ID only), so nothing a visitor types can reach the log. The privacy policy says so. |
+| No view across months (E2, second half) | "FY 2026-27 so far" in *Saved on this device*: earnings, deductions, income tax (TDS) and take-home added up over the saved months of the newest financial year (April to March), shown from two months up. It is a running total of what the payslips show, not a forecast, so a bonus month counts once, as paid. Worked out in the browser (`yearSoFar` in `history.js`); nothing is sent anywhere. |
+
+**Not done, on purpose:**
+- **Accounts, login, server-side document storage, a vector database per user:** the brief asks about these, but ClearSlip keeps nothing on the server, so there is nothing to isolate, sign or delete. Adding them would add the risks the brief warns about.
+- **Hindi answers and a Form 16 mode:** real features, each a project of its own. They belong in "future work".
+- **Sentry:** still opt-in (`npm install @sentry/node` plus `SENTRY_DSN`), so the free server doesn't carry it unused.
+
+**Verified:** 322 backend tests, 31 frontend tests and 8 end-to-end tests pass (the end-to-end run now also sends a rating and checks the year total). A live question to Groq came back cited with every check clean. `npm audit --omit=dev` (what CI runs and what is deployed) finds 0 vulnerabilities in both packages. The backend's test tooling (Jest, through `deepmerge`) has one new low-severity advisory with no fix yet; it is never installed on the server.
 
 ---
 

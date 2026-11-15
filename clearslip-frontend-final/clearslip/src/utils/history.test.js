@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { loadHistory, savePayslip, deletePayslip, isValidEntry, hasSavedPayslips } from './history'
+import { loadHistory, savePayslip, deletePayslip, isValidEntry, hasSavedPayslips, yearSoFar } from './history'
 
 const KEY = 'clearslip.history.v1'
 
@@ -71,5 +71,36 @@ describe('loadHistory with damaged storage', () => {
     damage(copy)
     expect(isValidEntry(entry)).toBe(true)
     expect(isValidEntry(copy)).toBe(false)
+  })
+})
+
+describe('yearSoFar', () => {
+  const month = (m, extra = []) => ({
+    id: m, month: m,
+    result: {
+      summary: { takeHome: 60000 },
+      breakdown: [
+        { component: 'Basic Salary', type: 'earning', monthly: 70000, annual: 840000 },
+        { component: 'TDS (Income Tax)', type: 'deduction', monthly: 6000, annual: 72000 },
+        { component: 'Employee PF', type: 'deduction', monthly: 4000, annual: 48000 },
+        ...extra,
+      ],
+    },
+  })
+
+  test('adds up the saved months of the newest financial year (April to March)', () => {
+    const bonus = { component: 'Bonus / Incentive', type: 'earning', monthly: 50000, annual: 50000 }
+    // March 2026 belongs to the year before, so it is left out
+    const total = yearSoFar([month('2026-10', [bonus]), month('2026-04'), month('2026-03')])
+    expect(total).toEqual({ label: 'FY 2026-27', months: 2, earnings: 190000, deductions: 20000, incomeTax: 12000, takeHome: 120000 })
+  })
+
+  test('January to March count towards the year that began the April before', () => {
+    expect(yearSoFar([month('2027-01'), month('2026-12')])).toMatchObject({ label: 'FY 2026-27', months: 2 })
+  })
+
+  test('needs two saved months in the year', () => {
+    expect(yearSoFar([])).toBeNull()
+    expect(yearSoFar([month('2026-10'), month('2026-03')])).toBeNull()
   })
 })

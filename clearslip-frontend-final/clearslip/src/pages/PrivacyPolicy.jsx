@@ -17,7 +17,7 @@ We do not collect your name, phone number, Aadhaar, PAN, bank account number, or
     },
     {
       title: 'Questions you ask Ask ClearSlip',
-      content: `Ask ClearSlip answers are written by a third-party AI service (Groq). When you ask a question, the question — and, if you have decoded a payslip, its figures (component names and amounts, never the image) — is sent through the ClearSlip server to Groq. Untick "Use my payslip figures" above the question box to send only your question. When AI answers are switched off or unavailable, nothing is sent to Groq and you see the matching passages from the tax rules instead. ClearSlip does not store your questions or the answers.
+      content: `Ask ClearSlip answers are written by a third-party AI service (Groq). When you ask a question, the question — and, if you have decoded a payslip, its figures (component names and amounts, never the image) — is sent through the ClearSlip server to Groq. Untick "Use my payslip figures" above the question box to send only your question. When AI answers are switched off or unavailable, nothing is sent to Groq and you see the matching passages from the tax rules instead. ClearSlip does not store your questions or the answers. If you press "Yes" or "No" under "Was this helpful?", the server records only that rating, the kind of answer, and which passages of the tax rules it showed — never your question, the answer or anything from your payslip.
 
 The "What if…?" tax simulator sends the figures you set to the ClearSlip server only, to calculate your tax. They are not sent to any AI service and not stored.`,
     },

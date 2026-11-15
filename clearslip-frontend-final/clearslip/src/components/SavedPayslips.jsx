@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { History, Trash2, ArrowLeftRight, FolderOpen } from 'lucide-react'
-import { monthLabel } from '../utils/history'
+import { monthLabel, yearSoFar } from '../utils/history'
 import { formatINR } from '../utils/formatCurrency'
 
 /**
@@ -11,6 +11,7 @@ export default function SavedPayslips({ entries, onOpen, onDelete, onClear, onCo
   const [picked, setPicked] = useState([])
   if (!entries.length) return null
 
+  const year = yearSoFar(entries)
   const toggle = id => setPicked(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id].slice(-2)))
 
   return (
@@ -42,6 +43,21 @@ export default function SavedPayslips({ entries, onOpen, onDelete, onClear, onCo
           </li>
         ))}
       </ul>
+
+      {year && (
+        <div className="mt-3 rounded-xl bg-peach px-4 py-3">
+          <h3 className="text-sm font-semibold text-terra">{year.label} so far, from your {year.months} saved payslips</h3>
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
+            {[['Earned', year.earnings], ['Deducted', year.deductions], ['Income tax (TDS) paid', year.incomeTax], ['Taken home', year.takeHome]].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-muted">{label}</dt>
+                <dd className="text-base font-semibold tabular-nums text-ink">{formatINR(value)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-2 text-sm text-muted">Added up from the months you saved, as they were paid. It isn&apos;t a forecast for the full year. Compare the tax paid with your Form 16 or Form 26AS.</p>
+        </div>
+      )}
 
       {entries.length > 1 && (
         <button

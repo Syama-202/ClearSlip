@@ -79,6 +79,35 @@ export function hasSavedPayslips() {
   try { return localStorage.getItem(KEY) !== null } catch { return false }
 }
 
+// India's financial year runs April to March: "2026-11" is in FY 2026-27
+const financialYear = month => {
+  const [y, m] = month.split('-').map(Number)
+  return m >= 4 ? y : y - 1
+}
+
+/**
+ * Adds up the saved payslips of the newest saved month's financial year: what was
+ * actually paid and deducted in those months, straight from the payslips. It is a
+ * running total, not a forecast, so a bonus month counts once, as it was paid.
+ * Returns null with fewer than two saved months in that year.
+ */
+export function yearSoFar(entries) {
+  if (!entries.length) return null
+  const fy = Math.max(...entries.map(e => financialYear(e.month)))
+  const months = entries.filter(e => financialYear(e.month) === fy)
+  if (months.length < 2) return null
+  const sum = pick => months.reduce((total, e) => total + pick(e.result), 0)
+  const rows = (r, type, match = () => true) => r.breakdown.filter(row => row.type === type && match(row)).reduce((t, row) => t + row.monthly, 0)
+  return {
+    label: `FY ${fy}-${String((fy + 1) % 100).padStart(2, '0')}`,
+    months: months.length,
+    earnings: sum(r => rows(r, 'earning')),
+    deductions: sum(r => rows(r, 'deduction')),
+    incomeTax: sum(r => rows(r, 'deduction', row => /tds|income\s*tax/i.test(row.component))),
+    takeHome: sum(r => r.summary.takeHome),
+  }
+}
+
 export function monthLabel(month) {
   const [y, m] = month.split('-').map(Number)
   return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })

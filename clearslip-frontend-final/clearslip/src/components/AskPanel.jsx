@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Send, Loader2, Calculator, BookOpen, ExternalLink, RotateCcw, AlertCircle, AlertTriangle, Wallet, HelpCircle, ListChecks } from 'lucide-react'
+import { Sparkles, Send, Loader2, Calculator, BookOpen, ExternalLink, RotateCcw, AlertCircle, AlertTriangle, Wallet, HelpCircle, ListChecks, ThumbsUp, ThumbsDown } from 'lucide-react'
 import AnswerText from './AnswerText.jsx'
 import useAsk from '../hooks/useAsk.js'
 import { formatINR } from '../utils/formatCurrency'
+import { postJson } from '../utils/api.js'
 
 const GENERAL_QUESTIONS = [
   'Do I pay any tax on a ₹10 lakh salary?',
@@ -205,6 +206,31 @@ function AnswerChecks({ checks }) {
   )
 }
 
+/**
+ * "Was this helpful?" under an answer. Sends the rating, the kind of answer, the
+ * IDs of the passages shown and whether a check flagged it: never the question
+ * or the answer. It can be sent once; if it can't be delivered, nothing is lost.
+ */
+function AnswerFeedback({ data, shownSources }) {
+  const [sent, setSent] = useState(false)
+  if (sent) return <p role="status" className="mt-3 text-sm text-subtle">Thanks, that helps improve ClearSlip.</p>
+
+  function send(helpful) {
+    setSent(true)
+    const checks = data.checks ?? {}
+    const flagged = Boolean(checks.untracedAmounts?.length || checks.fromQuestion?.length || checks.noCitations || checks.calculationWithoutTool)
+    postJson('/api/ask/feedback', { helpful, mode: data.mode, flagged, sources: shownSources.map(s => s.id).filter(Boolean) }).catch(() => {})
+  }
+  const button = 'flex items-center gap-1 rounded-lg px-2 py-1 text-muted hover:bg-peach hover:text-ink'
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1 text-sm text-subtle print:hidden">
+      <span className="mr-1">Was this helpful?</span>
+      <button type="button" onClick={() => send(true)} className={button}><ThumbsUp size={15} /> Yes</button>
+      <button type="button" onClick={() => send(false)} className={button}><ThumbsDown size={15} /> No</button>
+    </div>
+  )
+}
+
 function AssistantMessage({ message, idPrefix, onAsk }) {
   // Being written: plain text for now; the checked answer, in parts, replaces it when done
   if (message.streaming) {
@@ -293,6 +319,8 @@ function AssistantMessage({ message, idPrefix, onAsk }) {
           </ol>
         </div>
       )}
+
+      {(mode === 'rag' || mode === 'retrieval-only') && <AnswerFeedback data={message.data} shownSources={shownSources} />}
     </div>
   )
 }

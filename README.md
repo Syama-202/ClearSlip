@@ -20,7 +20,7 @@ cd clearslip-frontend-final/clearslip && npm install && npm run dev
 
 Open http://localhost:5173. The backend defaults to port 4000. If that port is taken, set `PORT` in `clearslip-backend/.env` and point `VITE_API_URL` in the frontend `.env` at it.
 
-Run the tests: 316 backend tests (Jest + Supertest), 27 frontend component tests (Vitest + React Testing Library), and 8 end-to-end tests in a real browser on the production build (Playwright):
+Run the tests: 322 backend tests (Jest + Supertest), 31 frontend component tests (Vitest + React Testing Library), and 8 end-to-end tests in a real browser on the production build (Playwright):
 
 ```bash
 cd clearslip-backend && npm test
@@ -45,6 +45,7 @@ The server reports which are on at `GET /api/health` (`features`) and in its sta
 | "Describe it" mode and free-form questions | `GROQ_API_KEY` (free at console.groq.com) | Describe mode shows a note; inputs the rules engine can't read get a "paste your payslip lines" message |
 | "Email checklist" button | `N8N_WEBHOOK_URL` (+ `N8N_SECRET`) | Button hidden |
 | AI answers in Ask ClearSlip | `GROQ_API_KEY` (model: `GROQ_MODEL`, default `openai/gpt-oss-120b`) | "Sources only" mode — shows the matching knowledge-base passages. The same fallback, with a notice, covers a rate-limited, expired or invalid key |
+| A daily cap on AI answers per visitor | on by default (40); `ASK_DAILY_AI_LIMIT=0` to disable | No cap: one visitor could use up the shared free AI allowance |
 | Embedding (dense) retrieval | on by default; `RAG_DENSE=off` to disable | BM25 keyword retrieval only |
 
 ### Ask ClearSlip knowledge base

@@ -43,6 +43,14 @@ Findings marked **[verified]** were reproduced. **[code]** means read from the s
 > - **Render:** Node is pinned.
 > - **Smoke test:** now 13 checks.
 >
+> **Update — follow-up pass (14 Nov 2026).** The smaller leftovers are closed too (§24 of the project documentation):
+> - **CORS:** `localhost` origins are allowed only outside production (G5).
+> - **AI allowance:** a daily cap on full AI answers per visitor; past it, sources only (E10).
+> - **Answer feedback:** Yes / No under each answer, logged without the question or the answer (E5).
+> - **Year so far:** saved months of the financial year added up (E2).
+>
+> Tests: 322 backend, 31 frontend, 8 end-to-end.
+>
 > Every finding from this re-audit is now fixed in code. What's left needs the owner's accounts: the Render deploy, the uptime monitor, and a small beta with real payslips. The ratings below describe the app **before** Phases 7–10.
 
 ---

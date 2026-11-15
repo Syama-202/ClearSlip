@@ -60,4 +60,18 @@ describe('AskPanel', () => {
     await ask('My PAN is ABCDE1234F', new Response(JSON.stringify({ success: false, error: 'Please do not share Aadhaar or PAN numbers in your question.' }), { status: 400, headers: { 'Content-Type': 'application/json' } }))
     expect(await screen.findByText(/Please do not share Aadhaar or PAN/)).toBeTruthy()
   })
+
+  test('sends a rating with the passage IDs, and never the question or the answer', async () => {
+    const fetchSpy = await ask('What is the standard deduction?', streamReply([
+      ['done', { data: { mode: 'rag', answer: 'The standard deduction is ₹75,000 [1].', sources: [{ ...source, id: 'standard-deduction#new-regime' }], cited: [1], toolCalls: [], checks: { untracedAmounts: [], fromQuestion: [], noCitations: false } } }],
+    ]))
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ success: true, data: { recorded: true } })))
+    fireEvent.click(await screen.findByRole('button', { name: 'No' }))
+
+    expect(screen.getByRole('status').textContent).toMatch(/Thanks/)
+    expect(screen.queryByRole('button', { name: 'No' })).toBeNull() // one rating per answer
+    const [url, options] = fetchSpy.mock.calls.at(-1)
+    expect(url).toMatch(/\/api\/ask\/feedback$/)
+    expect(JSON.parse(options.body)).toEqual({ helpful: false, mode: 'rag', flagged: false, sources: ['standard-deduction#new-regime'] })
+  })
 })

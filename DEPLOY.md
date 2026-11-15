@@ -8,7 +8,7 @@ A step-by-step checklist for putting ClearSlip online on Render's free tier, che
 
 ## 1. Before you start
 
-- [ ] The latest commit is pushed to `main`, and the **CI** workflow on GitHub is green (Actions tab). CI runs the 316 backend tests, the 27 frontend tests, a vulnerability check on both packages, the frontend build, and the 8 end-to-end browser tests.
+- [ ] The latest commit is pushed to `main`, and the **CI** workflow on GitHub is green (Actions tab). CI runs the 322 backend tests, the 31 frontend tests, a vulnerability check on both packages, the frontend build, and the 8 end-to-end browser tests.
 - [ ] You have a [Render](https://render.com) account and have let it read the `Syama-202/ClearSlip` repository. The repository is private, so in Render go to **Account settings → GitHub** and grant access to it.
 - [ ] Optional: a Groq API key from [console.groq.com](https://console.groq.com), for AI answers in Ask ClearSlip and the AI payslip reader. Without it the app still works: payslips are read by the rules engine, and Ask ClearSlip shows the matching official passages without an AI-written answer.
 
